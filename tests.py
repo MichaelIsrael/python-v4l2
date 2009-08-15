@@ -10,7 +10,6 @@ import v4l2
 # validators
 #
 
-
 def valid_string(string):
     for char in string:
         if (ord(char) < 32 or 126 < ord(char)):
@@ -83,6 +82,52 @@ def valid_input_status(status):
 
 
 #
+# helpers
+#
+
+def get_device_inputs(fd):
+    index = 0
+    while True:
+        input_ = v4l2.v4l2_input(index)
+        try:
+            v4l2.ioctl(fd, v4l2.VIDIOC_ENUMINPUT, input_)
+        except IOError, e:
+            assert e.errno == os.errno.EINVAL
+            break
+        yield input_
+        index += 1
+
+
+def get_device_outputs(fd):
+    index = 0
+    while True:
+        output = v4l2.v4l2_output(index)
+        try:
+            v4l2.ioctl(fd, v4l2.VIDIOC_ENUMOUTPUT, output)
+        except IOError, e:
+            assert e.errno == os.errno.EINVAL
+            break
+        yield output
+        index += 1
+
+
+def get_device_standards(fd):
+    # Note that according to the spec this is input/output specific,
+    # and so the yielded standards reflect the active input/output.
+
+    index = 0
+    while True:
+        std = v4l2.v4l2_standard(index)
+        try:
+            v4l2.ioctl(fd, v4l2.VIDIOC_ENUMSTD, std)
+        except IOError, e:
+            assert e.errno == os.errno.EINVAL
+            break
+        yield std
+        index += 1
+
+
+#
 # tests
 #
 
@@ -109,26 +154,67 @@ def test_VIDIOC_QUERYCAP_NULL(fd):
         pass
 
 
+def test_VIDIOC_G_INPUT(fd):
+    cap = v4l2.v4l2_capability()
+    v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
+
+    if not cap.capabilities & v4l2.V4L2_CAP_VIDEO_CAPTURE:
+        # test does not apply for this device
+        return
+
+    index = v4l2.ctypes.c_int()
+    v4l2.ioctl(fd, v4l2.VIDIOC_G_INPUT, index)
+
+
+def test_VIDIOC_S_INPUT(fd):
+    cap = v4l2.v4l2_capability()
+    v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
+
+    if not cap.capabilities & v4l2.V4L2_CAP_VIDEO_CAPTURE:
+        # test does not apply for this device
+        return
+
+    index = v4l2.ctypes.c_int(0)
+    v4l2.ioctl(fd, v4l2.VIDIOC_S_INPUT, index)
+
+
+def test_VIDIOC_G_OUTPUT(fd):
+    cap = v4l2.v4l2_capability()
+    v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
+
+    if not cap.capabilities & v4l2.V4L2_CAP_VIDEO_OUTPUT:
+        # test does not apply for this device
+        return
+
+    index = v4l2.ctypes.c_int()
+    v4l2.ioctl(fd, v4l2.VIDIOC_G_OUTPUT, index)
+
+
+def test_VIDIOC_S_OUTPUT(fd):
+    cap = v4l2.v4l2_capability()
+    v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
+
+    if not cap.capabilities & v4l2.V4L2_CAP_VIDEO_OUTPUT:
+        # test does not apply for this device
+        return
+
+    index = v4l2.ctypes.c_int(0)
+    v4l2.ioctl(fd, v4l2.VIDIOC_S_OUTPUT, index)
+
+
 def test_VIDIOC_ENUMINPUT(fd):
     cap = v4l2.v4l2_capability()
     v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
 
     if not cap.capabilities & v4l2.V4L2_CAP_VIDEO_CAPTURE:
+        # test does not apply for this device
         return
-    
+
     original_index = v4l2.ctypes.c_int()
     v4l2.ioctl(fd, v4l2.VIDIOC_G_INPUT, original_index)
 
-    index = 0
-    while True:
-        input_ = v4l2.v4l2_input(index)
-        try:
-            v4l2.ioctl(fd, v4l2.VIDIOC_ENUMINPUT, input_)
-        except IOError, e:
-            assert e.errno == os.errno.EINVAL
-            break
-
-        v4l2.ioctl(fd, v4l2.VIDIOC_S_INPUT, v4l2.ctypes.c_int(input_.index))
+    for index, input_ in enumerate(get_device_inputs(fd)):
+        v4l2.ioctl(fd, v4l2.VIDIOC_S_INPUT, v4l2.ctypes.c_int(index))
 
         assert input_.index == index
         assert valid_string(input_.name)
@@ -143,9 +229,197 @@ def test_VIDIOC_ENUMINPUT(fd):
         assert input_.reserved[2] == 0
         assert input_.reserved[3] == 0
 
+    v4l2.ioctl(fd, v4l2.VIDIOC_S_INPUT, original_index)
+
+
+def test_VIDIOC_ENUMOUTPUT(fd):
+    cap = v4l2.v4l2_capability()
+    v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
+
+    if not cap.capabilities & v4l2.V4L2_CAP_VIDEO_OUTPUT:
+        # test does not apply for this device
+        return
+
+    original_index = v4l2.ctypes.c_int()
+    v4l2.ioctl(fd, v4l2.VIDIOC_G_OUTPUT, original_index)
+
+    for index, output in enumerate(get_device_outputs(fd)):
+        v4l2.ioctl(fd, v4l2.VIDIOC_S_OUTPUT, v4l2.ctypes.c_int(index))
+
+        assert output.index == index
+        assert valid_string(output.name)
+        assert output.type & (
+            v4l2.V4L2_OUTPUT_TYPE_MODULATOR | v4l2.V4L2_OUTPUT_TYPE_ANALOG |
+            v4l2.V4L2_OUTPUT_TYPE_ANALOGVGAOVERLAY)
+        assert output.audioset < 32
+        # assert output.modulator ?
+        assert valid_v4l2_std_id(output.std)
+        assert output.reserved == 0
+
         index += 1
 
     v4l2.ioctl(fd, v4l2.VIDIOC_S_INPUT, original_index)
+
+
+def test_VIDIOC_ENUMSTD(fd):
+    cap = v4l2.v4l2_capability()
+    v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
+
+    def assert_valid_standard(index, std):
+        assert std.index == index
+        assert valid_v4l2_std_id(std.id)
+        assert valid_string(std.name)
+        assert std.frameperiod.numerator != 0
+        assert std.frameperiod.denominator != 0
+        assert std.framelines != 0
+        assert std.reserved[0] == 0
+        assert std.reserved[1] == 0
+        assert std.reserved[2] == 0
+        assert std.reserved[3] == 0
+
+    # The spec says that a different set of standards may be yielded
+    # by different inputs and outputs, so we repeat the test for each
+    # available input and output of the current device.
+
+    # test for input devices
+    if cap.capabilities & v4l2.V4L2_CAP_VIDEO_CAPTURE:
+        original_index = v4l2.ctypes.c_int()
+        v4l2.ioctl(fd, v4l2.VIDIOC_G_INPUT, original_index)
+
+        for input_ in get_device_inputs(fd):
+            v4l2.ioctl(fd, v4l2.VIDIOC_S_INPUT, v4l2.ctypes.c_int(input_.index))
+            for index, std in enumerate(get_device_standards(fd)):
+                assert_valid_standard(index, std)
+
+        v4l2.ioctl(fd, v4l2.VIDIOC_S_INPUT, original_index)
+
+    # test for output devices
+    if cap.capabilities & v4l2.V4L2_CAP_VIDEO_OUTPUT:
+        original_index = v4l2.ctypes.c_int()
+        v4l2.ioctl(fd, v4l2.VIDIOC_G_OUTPUT, original_index)
+
+        for output in get_device_outputs(fd):
+            v4l2.ioctl(fd, v4l2.VIDIOC_S_OUTPUT, v4l2.ctypes.c_int(output.index))
+            for index, std in enumerate(get_device_standards(fd)):
+                assert_valid_standard(index, std)
+
+        v4l2.ioctl(fd, v4l2.VIDIOC_S_INPUT, original_index)
+
+
+def test_VIDIOC_G_STD(fd):
+    cap = v4l2.v4l2_capability()
+    v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
+
+    # test for input devices
+    if cap.capabilities & v4l2.V4L2_CAP_VIDEO_CAPTURE:
+        original_index = v4l2.ctypes.c_int()
+        v4l2.ioctl(fd, v4l2.VIDIOC_G_INPUT, original_index)
+
+        for input_ in get_device_inputs(fd):
+            v4l2.ioctl(fd, v4l2.VIDIOC_S_INPUT, v4l2.ctypes.c_int(input_.index))
+            std_id = v4l2.v4l2_std_id()
+            try:
+                v4l2.ioctl(fd, v4l2.VIDIOC_G_STD, std_id)
+            except IOError, e:
+                assert e.errno == os.errno.EINVAL
+                # input devices may not support a standard
+                continue
+            assert valid_v4l2_std_id(std_id.value)
+
+        v4l2.ioctl(fd, v4l2.VIDIOC_S_INPUT, original_index)
+
+    # test for output devices
+    if cap.capabilities & v4l2.V4L2_CAP_VIDEO_OUTPUT:
+        original_index = v4l2.ctypes.c_int()
+        v4l2.ioctl(fd, v4l2.VIDIOC_G_OUTPUT, original_index)
+
+        for output in get_device_outputs(fd):
+            v4l2.ioctl(fd, v4l2.VIDIOC_S_OUTPUT, v4l2.ctypes.c_int(output.index))
+            std_id = v4l2.v4l2_std_id()
+            try:
+                v4l2.ioctl(fd, v4l2.VIDIOC_G_STD, std_id)
+            except IOError, e:
+                assert e.errno == os.errno.EINVAL
+                # output devices may not support a standard
+                continue
+            assert valid_v4l2_std_id(std_id.value)
+
+        v4l2.ioctl(fd, v4l2.VIDIOC_S_OUTPUT, original_index)
+
+
+def test_VIDIOC_S_STD(fd):
+    cap = v4l2.v4l2_capability()
+    v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
+
+    # test for input devices
+    if cap.capabilities & v4l2.V4L2_CAP_VIDEO_CAPTURE:
+        original_index = v4l2.ctypes.c_int()
+        v4l2.ioctl(fd, v4l2.VIDIOC_G_INPUT, original_index)
+
+        for input_ in get_device_inputs(fd):
+            v4l2.ioctl(fd, v4l2.VIDIOC_S_INPUT, v4l2.ctypes.c_int(input_.index))
+
+            original_std_index = v4l2.v4l2_std_id()
+            try:
+                v4l2.ioctl(fd, v4l2.VIDIOC_G_STD, original_std_index)
+            except IOError, e:
+                assert e.errno == os.errno.EINVAL
+                continue
+
+            for std in get_device_standards(fd):
+                std_id = v4l2.v4l2_std_id(std.id)
+                v4l2.ioctl(fd, v4l2.VIDIOC_S_STD, std_id)
+
+            v4l2.ioctl(fd, v4l2.VIDIOC_S_STD, original_std_index)
+
+        v4l2.ioctl(fd, v4l2.VIDIOC_S_INPUT, original_index)
+
+    # test for output devices
+    if cap.capabilities & v4l2.V4L2_CAP_VIDEO_OUTPUT:
+        original_index = v4l2.ctypes.c_int()
+        v4l2.ioctl(fd, v4l2.VIDIOC_G_OUTPUT, original_index)
+
+        for output in get_device_outputs(fd):
+            v4l2.ioctl(fd, v4l2.VIDIOC_S_OUTPUT, v4l2.ctypes.c_int(output.index))
+
+            original_std_index = v4l2.v4l2_std_id()
+            try:
+                v4l2.ioctl(fd, v4l2.VIDIOC_G_STD, original_std_index)
+            except IOError, e:
+                assert e.errno == os.errno.EINVAL
+                continue
+
+            for std in get_device_standards(fd):
+                std_id = v4l2.v4l2_std_id(std.id)
+                v4l2.ioctl(fd, v4l2.VIDIOC_S_STD, std_id)
+
+            v4l2.ioctl(fd, v4l2.VIDIOC_S_STD, original_std_index)
+
+        v4l2.ioctl(fd, v4l2.VIDIOC_S_OUTPUT, original_index)
+
+
+def test_VIDIOC_QUERYSTD(fd):
+    cap = v4l2.v4l2_capability()
+    v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
+
+    # test for input devices
+    if cap.capabilities & v4l2.V4L2_CAP_VIDEO_CAPTURE:
+        original_index = v4l2.ctypes.c_int()
+        v4l2.ioctl(fd, v4l2.VIDIOC_G_INPUT, original_index)
+
+        for input_ in get_device_inputs(fd):
+            v4l2.ioctl(fd, v4l2.VIDIOC_S_INPUT, v4l2.ctypes.c_int(input_.index))
+
+            std_id = v4l2.v4l2_std_id()
+            try:
+                v4l2.ioctl(fd, v4l2.VIDIOC_QUERYSTD, std_id)
+            except IOError, e:
+                # this ioctl might not be supported on this device
+                assert e.errno == os.errno.EINVAL
+                continue
+            assert valid_v4l2_std_id(std_id.value)
+
+        v4l2.ioctl(fd, v4l2.VIDIOC_S_INPUT, original_index)
 
 
 #
@@ -175,12 +449,18 @@ if __name__ == '__main__':
     def run():
         import sys
         open_devices()
-        for fd in devices:
-            for member in globals():
-                if member.startswith('test_'):
-                    try:
-                        globals()[member](fd)
-                    except:
-                        sys.stderr.write('fd = %r\n' % fd)
-                        raise
+
+        tests = []
+        for member in globals():
+            if member.startswith('test_'):
+                tests.append(globals()[member])
+        tests.sort(key=lambda t: id(t))
+
+        for testfunc in tests:
+            for fd in devices:
+                try:
+                    testfunc(fd)
+                except:
+                    sys.stderr.write('fd = %r\n' % fd)
+                    raise
     run()

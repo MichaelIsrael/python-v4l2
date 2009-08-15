@@ -63,7 +63,7 @@ def to_rw_buffer(obj):
     `fcntl.ioctl`'s `arg` kwarg.
     """
     return ctypes.pythonapi.PyBuffer_FromReadWriteMemory(
-        ctypes.c_void_p(ctypes.addressof(obj)), ctypes.sizeof(obj))
+        ctypes.byref(obj), ctypes.sizeof(obj))
 
 
 def ioctl(fd, op, arg=0):
@@ -96,8 +96,7 @@ def _IOC(dir_, type_, nr, size):
         ctypes.c_int32(dir_ << _IOC_DIRSHIFT).value |
         ctypes.c_int32(ord(type_) << _IOC_TYPESHIFT).value |
         ctypes.c_int32(nr << _IOC_NRSHIFT).value |
-        ctypes.c_int32(size << _IOC_SIZESHIFT).value
-    )
+        ctypes.c_int32(size << _IOC_SIZESHIFT).value)
 
 
 def _IOC_TYPECHECK(t):
@@ -118,6 +117,13 @@ def _IOR(type_, nr, size):
 
 def _IOWR(type_, nr, size):
     return _IOC(_IOC_READ | _IOC_WRITE, type_, nr, _IOC_TYPECHECK(size))
+
+
+#
+# enum
+#
+
+enum = ctypes.c_uint
 
 
 #
@@ -159,7 +165,8 @@ def v4l2_fourcc(a, b, c, d):
     return ord(a) | (ord(b) << 8) | (ord(c) << 16) | (ord(c) << 24)
 
 
-v4l2_field = (
+v4l2_field = enum
+(
     V4L2_FIELD_ANY,
     V4L2_FIELD_NONE,
     V4L2_FIELD_TOP,
@@ -202,7 +209,8 @@ def V4L2_FIELD_HAS_BOTH(field):
         field == V4L2_FIELD_SEQ_BT)
 
 
-v4l2_buf_type = (
+v4l2_buf_type = enum
+(
     V4L2_BUF_TYPE_VIDEO_CAPTURE,
     V4L2_BUF_TYPE_VIDEO_OUTPUT,
     V4L2_BUF_TYPE_VIDEO_OVERLAY,
@@ -215,7 +223,8 @@ v4l2_buf_type = (
 ) = range(1, 9) + [0x80]
 
 
-v4l2_ctrl_type = (
+v4l2_ctrl_type = enum
+(
     V4L2_CTRL_TYPE_INTEGER,
     V4L2_CTRL_TYPE_BOOLEAN,
     V4L2_CTRL_TYPE_MENU,
@@ -225,21 +234,24 @@ v4l2_ctrl_type = (
 ) = range(1, 7)
 
 
-v4l2_tuner_type = (
+v4l2_tuner_type = enum
+(
     V4L2_TUNER_RADIO,
     V4L2_TUNER_ANALOG_TV,
     V4L2_TUNER_DIGITAL_TV,
 ) = range(1, 4)
 
 
-v4l2_memory = (
+v4l2_memory = enum
+(
     V4L2_MEMORY_MMAP,
     V4L2_MEMORY_USERPTR,
     V4L2_MEMORY_OVERLAY,
 ) = range(1, 4)
 
 
-v4l2_colorspace = (
+v4l2_colorspace = enum
+(
     V4L2_COLORSPACE_SMPTE170M,
     V4L2_COLORSPACE_SMPTE240M,
     V4L2_COLORSPACE_REC709,
@@ -251,7 +263,8 @@ v4l2_colorspace = (
 ) = range(1, 9)
 
 
-v4l2_priority = (
+v4l2_priority = enum
+(
     V4L2_PRIORITY_UNSET,
     V4L2_PRIORITY_BACKGROUND,
     V4L2_PRIORITY_INTERACTIVE,
@@ -324,10 +337,10 @@ class v4l2_pix_format(ctypes.Structure):
         ('width', ctypes.c_uint32),
         ('height', ctypes.c_uint32),
         ('pixelformat', ctypes.c_uint32),
-        ('field', ctypes.c_int), # enum v4l2_field
+        ('field', v4l2_field),
         ('bytesperline', ctypes.c_uint32),
         ('sizeimage', ctypes.c_uint32),
-        ('colorspace', ctypes.c_int), # enum v4l2_colorspace
+        ('colorspace', v4l2_colorspace),
         ('priv', ctypes.c_uint32),
     ]
 
@@ -407,7 +420,8 @@ V4L2_FMT_FLAG_COMPRESSED = 0x0001
 # Experimental frame size and frame rate enumeration
 #
 
-v4l2_frmsizetypes = (
+v4l2_frmsizetypes = enum
+(
     V4L2_FRMSIZE_TYPE_DISCRETE,
     V4L2_FRMSIZE_TYPE_CONTINUOUS,
     V4L2_FRMSIZE_TYPE_STEPWISE,
@@ -454,7 +468,8 @@ class v4l2_frmsizeenum(ctypes.Structure):
 # Frame rate enumeration
 #
 
-v4l2_frmivaltypes = (
+v4l2_frmivaltypes = enum
+(
     V4L2_FRMIVAL_TYPE_DISCRETE,
     V4L2_FRMIVAL_TYPE_CONTINUOUS,
     V4L2_FRMIVAL_TYPE_STEPWISE,
@@ -544,8 +559,8 @@ V4L2_JPEG_MARKER_APP = 1 << 7
 class v4l2_requestbuffers(ctypes.Structure):
     _fields_ = [
         ('count', ctypes.c_uint32),
-        ('type', ctypes.c_int), # enum v4l2_buf_type
-        ('memory', ctypes.c_int), # enum v4l2_memory
+        ('type', v4l2_buf_type),
+        ('memory', v4l2_memory),
         ('reserved', ctypes.c_uint32 * 2),
     ]
 
@@ -559,14 +574,14 @@ class v4l2_buffer(ctypes.Structure):
 
     _fields_ = [
         ('index', ctypes.c_uint32),
-        ('type', ctypes.c_int), # enum v4l2_buf_type
+        ('type', v4l2_buf_type),
         ('bytesused', ctypes.c_uint32),
         ('flags', ctypes.c_uint32),
-        ('field', ctypes.c_int), # enum v4l2_field
+        ('field', v4l2_field),
         ('timestamp', timeval),
         ('timecode', v4l2_timecode),
         ('sequence', ctypes.c_uint32),
-        ('memory', ctypes.c_int), # enum v4l2_memory
+        ('memory', v4l2_memory),
         ('m', _u),
         ('length', ctypes.c_uint32),
         ('input', ctypes.c_uint32),
@@ -624,7 +639,7 @@ v4l2_clip._fields_ = [
 class v4l2_window(ctypes.Structure):
     _fields_ = [
         ('w', v4l2_rect),
-        ('field', ctypes.c_int), # enum v4l2_field
+        ('field', v4l2_field),
         ('chromakey', ctypes.c_uint32),
         ('clips', ctypes.POINTER(v4l2_clip)),
         ('clipcount', ctypes.c_uint32),
@@ -668,7 +683,7 @@ class v4l2_outputparam(ctypes.Structure):
 
 class v4l2_cropcap(ctypes.Structure):
     _fields_ = [
-        ('type', ctypes.c_int), # enum v4l2_buf_type
+        ('type', v4l2_buf_type),
         ('bounds', v4l2_rect),
         ('defrect', v4l2_rect),
         ('pixelaspect', v4l2_fract),
@@ -881,7 +896,7 @@ def V4L2_CTRL_DRIVER_PRIV(id_):
 class v4l2_queryctrl(ctypes.Structure):
     _fields_ = [
         ('id', ctypes.c_uint32),
-        ('type', ctypes.c_int), # enum v4l2_ctrl_type
+        ('type', v4l2_ctrl_type),
         ('name', ctypes.c_char * 32),
         ('minimum', ctypes.c_int32),
         ('maximum', ctypes.c_int32),
@@ -941,7 +956,8 @@ V4L2_CID_VCENTER = V4L2_CID_BASE + 23
 
 V4L2_CID_POWER_LINE_FREQUENCY = V4L2_CID_BASE + 24
 
-v4l2_power_line_frequency = (
+v4l2_power_line_frequency = enum
+(
     V4L2_CID_POWER_LINE_FREQUENCY_DISABLED,
     V4L2_CID_POWER_LINE_FREQUENCY_50HZ,
     V4L2_CID_POWER_LINE_FREQUENCY_60HZ,
@@ -960,7 +976,8 @@ V4L2_CID_MPEG_CLASS = V4L2_CTRL_CLASS_MPEG | 1
 # MPEG streams
 V4L2_CID_MPEG_STREAM_TYPE = V4L2_CID_MPEG_BASE + 0
 
-v4l2_mpeg_stream_type = (
+v4l2_mpeg_stream_type = enum
+(
     V4L2_MPEG_STREAM_TYPE_MPEG2_PS,
     V4L2_MPEG_STREAM_TYPE_MPEG2_TS,
     V4L2_MPEG_STREAM_TYPE_MPEG1_SS,
@@ -977,14 +994,16 @@ V4L2_CID_MPEG_STREAM_PES_ID_AUDIO = V4L2_CID_MPEG_BASE + 5
 V4L2_CID_MPEG_STREAM_PES_ID_VIDEO = V4L2_CID_MPEG_BASE + 6
 V4L2_CID_MPEG_STREAM_VBI_FMT = V4L2_CID_MPEG_BASE + 7
 
-v4l2_mpeg_stream_vbi_fmt = (
+v4l2_mpeg_stream_vbi_fmt = enum
+(
     V4L2_MPEG_STREAM_VBI_FMT_NONE,
     V4L2_MPEG_STREAM_VBI_FMT_IVTV,
 ) = range(2)
 
 V4L2_CID_MPEG_AUDIO_SAMPLING_FREQ = V4L2_CID_MPEG_BASE + 100
 
-v4l2_mpeg_audio_sampling_freq = (
+v4l2_mpeg_audio_sampling_freq = enum
+(
     V4L2_MPEG_AUDIO_SAMPLING_FREQ_44100,
     V4L2_MPEG_AUDIO_SAMPLING_FREQ_48000,
     V4L2_MPEG_AUDIO_SAMPLING_FREQ_32000,
@@ -992,7 +1011,8 @@ v4l2_mpeg_audio_sampling_freq = (
 
 V4L2_CID_MPEG_AUDIO_ENCODING = V4L2_CID_MPEG_BASE + 101
 
-v4l2_mpeg_audio_encoding = (
+v4l2_mpeg_audio_encoding = enum
+(
     V4L2_MPEG_AUDIO_ENCODING_LAYER_1,
     V4L2_MPEG_AUDIO_ENCODING_LAYER_2,
     V4L2_MPEG_AUDIO_ENCODING_LAYER_3,
@@ -1002,7 +1022,8 @@ v4l2_mpeg_audio_encoding = (
 
 V4L2_CID_MPEG_AUDIO_L1_BITRATE = V4L2_CID_MPEG_BASE + 102
 
-v4l2_mpeg_audio_l1_bitrate = (
+v4l2_mpeg_audio_l1_bitrate = enum
+(
     V4L2_MPEG_AUDIO_L1_BITRATE_32K,
     V4L2_MPEG_AUDIO_L1_BITRATE_64K,
     V4L2_MPEG_AUDIO_L1_BITRATE_96K,
@@ -1021,7 +1042,8 @@ v4l2_mpeg_audio_l1_bitrate = (
 
 V4L2_CID_MPEG_AUDIO_L2_BITRATE = V4L2_CID_MPEG_BASE + 103
 
-v4l2_mpeg_audio_l2_bitrate = (
+v4l2_mpeg_audio_l2_bitrate = enum
+(
     V4L2_MPEG_AUDIO_L2_BITRATE_32K,
     V4L2_MPEG_AUDIO_L2_BITRATE_48K,
     V4L2_MPEG_AUDIO_L2_BITRATE_56K,
@@ -1040,7 +1062,8 @@ v4l2_mpeg_audio_l2_bitrate = (
 
 V4L2_CID_MPEG_AUDIO_L3_BITRATE = V4L2_CID_MPEG_BASE + 104
 
-v4l2_mpeg_audio_l3_bitrate = (
+v4l2_mpeg_audio_l3_bitrate = enum
+(
     V4L2_MPEG_AUDIO_L3_BITRATE_32K,
     V4L2_MPEG_AUDIO_L3_BITRATE_40K,
     V4L2_MPEG_AUDIO_L3_BITRATE_48K,
@@ -1059,7 +1082,8 @@ v4l2_mpeg_audio_l3_bitrate = (
 
 V4L2_CID_MPEG_AUDIO_MODE = V4L2_CID_MPEG_BASE + 105
 
-v4l2_mpeg_audio_mode = (
+v4l2_mpeg_audio_mode = enum
+(
     V4L2_MPEG_AUDIO_MODE_STEREO,
     V4L2_MPEG_AUDIO_MODE_JOINT_STEREO,
     V4L2_MPEG_AUDIO_MODE_DUAL,
@@ -1068,7 +1092,8 @@ v4l2_mpeg_audio_mode = (
 
 V4L2_CID_MPEG_AUDIO_MODE_EXTENSION = V4L2_CID_MPEG_BASE + 106
 
-v4l2_mpeg_audio_mode_extension = (
+v4l2_mpeg_audio_mode_extension = enum
+(
     V4L2_MPEG_AUDIO_MODE_EXTENSION_BOUND_4,
     V4L2_MPEG_AUDIO_MODE_EXTENSION_BOUND_8,
     V4L2_MPEG_AUDIO_MODE_EXTENSION_BOUND_12,
@@ -1077,7 +1102,8 @@ v4l2_mpeg_audio_mode_extension = (
 
 V4L2_CID_MPEG_AUDIO_EMPHASIS = V4L2_CID_MPEG_BASE + 107
 
-v4l2_mpeg_audio_emphasis = (
+v4l2_mpeg_audio_emphasis = enum
+(
     V4L2_MPEG_AUDIO_EMPHASIS_NONE,
     V4L2_MPEG_AUDIO_EMPHASIS_50_DIV_15_uS,
     V4L2_MPEG_AUDIO_EMPHASIS_CCITT_J17,
@@ -1085,7 +1111,8 @@ v4l2_mpeg_audio_emphasis = (
 
 V4L2_CID_MPEG_AUDIO_CRC = V4L2_CID_MPEG_BASE + 108
 
-v4l2_mpeg_audio_crc = (
+v4l2_mpeg_audio_crc = enum
+(
     V4L2_MPEG_AUDIO_CRC_NONE,
     V4L2_MPEG_AUDIO_CRC_CRC16,
 ) = range(2)
@@ -1094,7 +1121,8 @@ V4L2_CID_MPEG_AUDIO_MUTE = V4L2_CID_MPEG_BASE + 109
 V4L2_CID_MPEG_AUDIO_AAC_BITRATE = V4L2_CID_MPEG_BASE + 110
 V4L2_CID_MPEG_AUDIO_AC3_BITRATE	= V4L2_CID_MPEG_BASE + 111
 
-v4l2_mpeg_audio_ac3_bitrate = (
+v4l2_mpeg_audio_ac3_bitrate = enum
+(
     V4L2_MPEG_AUDIO_AC3_BITRATE_32K,
     V4L2_MPEG_AUDIO_AC3_BITRATE_40K,
     V4L2_MPEG_AUDIO_AC3_BITRATE_48K,
@@ -1118,7 +1146,8 @@ v4l2_mpeg_audio_ac3_bitrate = (
 
 V4L2_CID_MPEG_VIDEO_ENCODING = V4L2_CID_MPEG_BASE + 200
 
-v4l2_mpeg_video_encoding = (
+v4l2_mpeg_video_encoding = enum
+(
     V4L2_MPEG_VIDEO_ENCODING_MPEG_1,
     V4L2_MPEG_VIDEO_ENCODING_MPEG_2,
     V4L2_MPEG_VIDEO_ENCODING_MPEG_4_AVC,
@@ -1126,7 +1155,8 @@ v4l2_mpeg_video_encoding = (
 
 V4L2_CID_MPEG_VIDEO_ASPECT = V4L2_CID_MPEG_BASE + 201
 
-v4l2_mpeg_video_aspect = (
+v4l2_mpeg_video_aspect = enum
+(
     V4L2_MPEG_VIDEO_ASPECT_1x1,
     V4L2_MPEG_VIDEO_ASPECT_4x3,
     V4L2_MPEG_VIDEO_ASPECT_16x9,
@@ -1139,7 +1169,8 @@ V4L2_CID_MPEG_VIDEO_GOP_CLOSURE = V4L2_CID_MPEG_BASE + 204
 V4L2_CID_MPEG_VIDEO_PULLDOWN = V4L2_CID_MPEG_BASE + 205
 V4L2_CID_MPEG_VIDEO_BITRATE_MODE = V4L2_CID_MPEG_BASE + 206
 
-v4l2_mpeg_video_bitrate_mode = (
+v4l2_mpeg_video_bitrate_mode = enum
+(
     V4L2_MPEG_VIDEO_BITRATE_MODE_VBR,
     V4L2_MPEG_VIDEO_BITRATE_MODE_CBR,
 ) = range(2)
@@ -1153,7 +1184,8 @@ V4L2_CID_MPEG_VIDEO_MUTE_YUV = V4L2_CID_MPEG_BASE + 211
 V4L2_CID_MPEG_CX2341X_BASE = V4L2_CTRL_CLASS_MPEG | 0x1000
 V4L2_CID_MPEG_CX2341X_VIDEO_SPATIAL_FILTER_MODE = V4L2_CID_MPEG_CX2341X_BASE + 0
 
-v4l2_mpeg_cx2341x_video_spatial_filter_mode = (
+v4l2_mpeg_cx2341x_video_spatial_filter_mode = enum
+(
     V4L2_MPEG_CX2341X_VIDEO_SPATIAL_FILTER_MODE_MANUAL,
     V4L2_MPEG_CX2341X_VIDEO_SPATIAL_FILTER_MODE_AUTO,
 ) = range(2)
@@ -1161,7 +1193,8 @@ v4l2_mpeg_cx2341x_video_spatial_filter_mode = (
 V4L2_CID_MPEG_CX2341X_VIDEO_SPATIAL_FILTER = V4L2_CID_MPEG_CX2341X_BASE + 1
 V4L2_CID_MPEG_CX2341X_VIDEO_LUMA_SPATIAL_FILTER_TYPE = V4L2_CID_MPEG_CX2341X_BASE + 2
 
-v4l2_mpeg_cx2341x_video_luma_spatial_filter_type = (
+v4l2_mpeg_cx2341x_video_luma_spatial_filter_type = enum
+(
     V4L2_MPEG_CX2341X_VIDEO_LUMA_SPATIAL_FILTER_TYPE_OFF, 
     V4L2_MPEG_CX2341X_VIDEO_LUMA_SPATIAL_FILTER_TYPE_1D_HOR,
     V4L2_MPEG_CX2341X_VIDEO_LUMA_SPATIAL_FILTER_TYPE_1D_VERT,
@@ -1171,14 +1204,16 @@ v4l2_mpeg_cx2341x_video_luma_spatial_filter_type = (
 
 V4L2_CID_MPEG_CX2341X_VIDEO_CHROMA_SPATIAL_FILTER_TYPE = V4L2_CID_MPEG_CX2341X_BASE + 3
 
-v4l2_mpeg_cx2341x_video_chroma_spatial_filter_type = (
+v4l2_mpeg_cx2341x_video_chroma_spatial_filter_type = enum
+(
     V4L2_MPEG_CX2341X_VIDEO_CHROMA_SPATIAL_FILTER_TYPE_OFF,
     V4L2_MPEG_CX2341X_VIDEO_CHROMA_SPATIAL_FILTER_TYPE_1D_HOR,
 ) = range(2)
 
 V4L2_CID_MPEG_CX2341X_VIDEO_TEMPORAL_FILTER_MODE = V4L2_CID_MPEG_CX2341X_BASE + 4
 
-v4l2_mpeg_cx2341x_video_temporal_filter_mode = (
+v4l2_mpeg_cx2341x_video_temporal_filter_mode = enum
+(
     V4L2_MPEG_CX2341X_VIDEO_TEMPORAL_FILTER_MODE_MANUAL,
     V4L2_MPEG_CX2341X_VIDEO_TEMPORAL_FILTER_MODE_AUTO,
 ) = range(2)
@@ -1186,7 +1221,8 @@ v4l2_mpeg_cx2341x_video_temporal_filter_mode = (
 V4L2_CID_MPEG_CX2341X_VIDEO_TEMPORAL_FILTER = V4L2_CID_MPEG_CX2341X_BASE + 5
 V4L2_CID_MPEG_CX2341X_VIDEO_MEDIAN_FILTER_TYPE = V4L2_CID_MPEG_CX2341X_BASE + 6
 
-v4l2_mpeg_cx2341x_video_median_filter_type = (
+v4l2_mpeg_cx2341x_video_median_filter_type = enum
+(
     V4L2_MPEG_CX2341X_VIDEO_MEDIAN_FILTER_TYPE_OFF,
     V4L2_MPEG_CX2341X_VIDEO_MEDIAN_FILTER_TYPE_HOR,
     V4L2_MPEG_CX2341X_VIDEO_MEDIAN_FILTER_TYPE_VERT,
@@ -1205,7 +1241,8 @@ V4L2_CID_CAMERA_CLASS = V4L2_CTRL_CLASS_CAMERA | 1
 
 V4L2_CID_EXPOSURE_AUTO = V4L2_CID_CAMERA_CLASS_BASE + 1
 
-v4l2_exposure_auto_type = (
+v4l2_exposure_auto_type = enum
+(
     V4L2_EXPOSURE_AUTO,
     V4L2_EXPOSURE_MANUAL,
     V4L2_EXPOSURE_SHUTTER_PRIORITY,
@@ -1236,7 +1273,7 @@ class v4l2_tuner(ctypes.Structure):
     _fields_ = [
         ('index', ctypes.c_uint32),
         ('name', ctypes.c_char * 32),
-        ('type', ctypes.c_int), # enum v4l2_tuner_type
+        ('type', v4l2_tuner_type),
         ('capability', ctypes.c_uint32),
         ('rangelow', ctypes.c_uint32),
         ('rangehigh', ctypes.c_uint32),
@@ -1284,7 +1321,7 @@ V4L2_TUNER_MODE_LANG1_LANG2 = 0x0004
 class v4l2_frequency(ctypes.Structure):
     _fields_ = [
         ('tuner', ctypes.c_uint32),
-        ('type', ctypes.c_int), # enum v4l2_tuner_type
+        ('type', v4l2_tuner_type),
         ('frequency', ctypes.c_uint32),
         ('reserved', ctypes.c_uint32 * 8),
     ]
@@ -1293,7 +1330,7 @@ class v4l2_frequency(ctypes.Structure):
 class v4l2_hw_freq_seek(ctypes.Structure):
     _fields_ = [
         ('tuner', ctypes.c_uint32),
-        ('type', ctypes.c_int), # enum v4l2_tuner_type
+        ('type', v4l2_tuner_type),
         ('seek_upward', ctypes.c_uint32),
         ('wrap_around', ctypes.c_uint32),
         ('reserved', ctypes.c_uint32 * 8),
@@ -1432,19 +1469,19 @@ class v4l2_sliced_vbi_cap(ctypes.Structure):
     _fields_ = [
         ('service_set', ctypes.c_uint16),
         ('service_lines', ctypes.c_uint16 * 2 * 24),
-        ('type', ctypes.c_int), # enum v4l2_buf_type
+        ('type', v4l2_buf_type),
         ('reserved', ctypes.c_uint32 * 3),
     ]
 
 
 class v4l2_sliced_vbi_data(ctypes.Structure):
-    _fields_ = (
+    _fields_ = [
         ('id', ctypes.c_uint32),
         ('field', ctypes.c_uint32),
         ('line', ctypes.c_uint32),
         ('reserved', ctypes.c_uint32),
         ('data', ctypes.c_char * 48),
-    )
+    ]
 
 
 #
@@ -1462,7 +1499,7 @@ class v4l2_format(ctypes.Structure):
         ]
 
     _fields_ = [
-        ('type', ctypes.c_uint), # enum v4l2_buf_type
+        ('type', v4l2_buf_type),
         ('fmt', _u),
     ]
 
@@ -1476,7 +1513,7 @@ class v4l2_streamparm(ctypes.Structure):
         ]
 
     _fields_ = [
-        ('type', ctypes.c_int), # enum v4l2_buf_type
+        ('type', v4l2_buf_type),
         ('parm', _u)
     ]
 
@@ -1559,8 +1596,8 @@ VIDIOC_QUERYSTD = _IOR('V', 63, v4l2_std_id)
 VIDIOC_TRY_FMT = _IOWR('V', 64, v4l2_format)
 VIDIOC_ENUMAUDIO = _IOWR('V', 65, v4l2_audio)
 VIDIOC_ENUMAUDOUT = _IOWR('V', 66, v4l2_audioout)
-VIDIOC_G_PRIORITY = _IOR('V', 67, ctypes.c_int) # enum v4l2_priority
-VIDIOC_S_PRIORITY = _IOW('V', 68, ctypes.c_int) # enum v4l2_priority
+VIDIOC_G_PRIORITY = _IOR('V', 67, v4l2_priority)
+VIDIOC_S_PRIORITY = _IOW('V', 68, v4l2_priority)
 VIDIOC_G_SLICED_VBI_CAP = _IOWR('V', 69, v4l2_sliced_vbi_cap)
 VIDIOC_LOG_STATUS = _IO('V', 70)
 VIDIOC_G_EXT_CTRLS = _IOWR('V', 71, v4l2_ext_controls)

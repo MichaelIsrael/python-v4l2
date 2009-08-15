@@ -4,8 +4,6 @@ Tests for Python bindings for the v4l2 userspace api
 Can be run with or without py.test.
 """
 
-import sys
-import glob
 import v4l2
 
 
@@ -90,6 +88,7 @@ devices = None
 
 
 def open_devices():
+    import glob
     global devices
     if devices is None:
         devices = [
@@ -105,6 +104,7 @@ def pytest_generate_tests(metafunc):
 
 if __name__ == '__main__':
     def run():
+        import sys
         open_devices()
         for fd in devices:
             for member in globals():

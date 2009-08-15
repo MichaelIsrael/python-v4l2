@@ -66,12 +66,12 @@ def to_rw_buffer(obj):
         ctypes.byref(obj), ctypes.sizeof(obj))
 
 
-def ioctl(fd, op, arg=0):
+def ioctl(fd, op, arg=None):
     """
     A wrapper arount `fcntl.ioctl` that automatically handles ctypes
     objects.  Most v4l2 struct instances are mutated.
     """
-    if arg != 0:
+    if arg is not None:
         arg = to_rw_buffer(arg)
     return fcntl.ioctl(fd, op, arg, True)
 

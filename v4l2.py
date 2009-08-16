@@ -48,6 +48,7 @@ Python bindings for the v4l2 userspace api
 
 import fcntl
 import ctypes
+from os import errno
 
 
 #
@@ -120,10 +121,11 @@ def _IOWR(type_, nr, size):
 
 
 #
-# enum
+# type definitions
 #
 
 enum = ctypes.c_uint
+c_int = ctypes.c_int
 
 
 #
@@ -1602,20 +1604,16 @@ VIDIOC_G_SLICED_VBI_CAP = _IOWR('V', 69, v4l2_sliced_vbi_cap)
 VIDIOC_LOG_STATUS = _IO('V', 70)
 VIDIOC_G_EXT_CTRLS = _IOWR('V', 71, v4l2_ext_controls)
 VIDIOC_S_EXT_CTRLS = _IOWR('V', 72, v4l2_ext_controls)
-
 VIDIOC_TRY_EXT_CTRLS = _IOWR('V', 73, v4l2_ext_controls)
 VIDIOC_ENUM_FRAMESIZES = _IOWR('V', 74, v4l2_frmsizeenum)
 VIDIOC_ENUM_FRAMEINTERVALS = _IOWR('V', 75, v4l2_frmivalenum)
 VIDIOC_G_ENC_INDEX = _IOR('V', 76, v4l2_enc_idx)
 VIDIOC_ENCODER_CMD = _IOWR('V', 77, v4l2_encoder_cmd)
 VIDIOC_TRY_ENCODER_CMD = _IOWR('V', 78, v4l2_encoder_cmd)
-
 VIDIOC_DBG_S_REGISTER = _IOW('V', 79, v4l2_register)
 VIDIOC_DBG_G_REGISTER = _IOWR('V', 80, v4l2_register)
-
 VIDIOC_G_CHIP_IDENT = _IOWR('V', 81, v4l2_chip_ident)
 VIDIOC_S_HW_FREQ_SEEK = _IOW('V', 82, v4l2_hw_freq_seek)
-
 VIDIOC_OVERLAY_OLD = _IOWR('V', 14, ctypes.c_int)
 VIDIOC_S_PARM_OLD = _IOW('V', 22, v4l2_streamparm)
 VIDIOC_S_CTRL_OLD = _IOW('V', 28, v4l2_control)

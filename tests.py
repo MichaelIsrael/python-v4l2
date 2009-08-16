@@ -274,6 +274,12 @@ def test_VIDIOC_S_INPUT(fd):
     index = v4l2.ctypes.c_int(0)
     v4l2.ioctl(fd, v4l2.VIDIOC_S_INPUT, index)
 
+    index.value = 1 << 31
+    try:
+        v4l2.ioctl(fd, v4l2.VIDIOC_S_INPUT, index)
+    except IOError, e:
+        assert e.errno == os.errno.EINVAL
+
 
 def test_VIDIOC_G_OUTPUT(fd):
     cap = v4l2.v4l2_capability()
@@ -297,6 +303,12 @@ def test_VIDIOC_S_OUTPUT(fd):
 
     index = v4l2.ctypes.c_int(0)
     v4l2.ioctl(fd, v4l2.VIDIOC_S_OUTPUT, index)
+
+    index.value = 1 << 31
+    try:
+        v4l2.ioctl(fd, v4l2.VIDIOC_S_OUTPUT, index)
+    except IOError, e:
+        assert e.errno == os.errno.EINVAL
 
 
 def test_VIDIOC_ENUMINPUT(fd):
@@ -407,9 +419,9 @@ def test_VIDIOC_S_STD(fd):
     v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
 
     def test_set_standard(fd, input_or_output):
-        original_std_index = v4l2.v4l2_std_id()
+        original_std_id = v4l2.v4l2_std_id()
         try:
-            v4l2.ioctl(fd, v4l2.VIDIOC_G_STD, original_std_index)
+            v4l2.ioctl(fd, v4l2.VIDIOC_G_STD, original_std_id)
         except IOError, e:
             assert e.errno == os.errno.EINVAL
             return
@@ -418,7 +430,13 @@ def test_VIDIOC_S_STD(fd):
             std_id = v4l2.v4l2_std_id(std.id)
             v4l2.ioctl(fd, v4l2.VIDIOC_S_STD, std_id)
 
-        v4l2.ioctl(fd, v4l2.VIDIOC_S_STD, original_std_index)
+        bad_std_id = v4l2.v4l2_std_id(1 << 31)
+        try:
+            v4l2.ioctl(fd, v4l2.VIDIOC_S_STD, bad_std_id)
+        except IOError, e:
+            assert e.errno == os.errno.EINVAL
+
+        v4l2.ioctl(fd, v4l2.VIDIOC_S_STD, original_std_id)
 
     # test for input devices
     if cap.capabilities & v4l2.V4L2_CAP_VIDEO_CAPTURE:
@@ -545,6 +563,27 @@ def test_VIDIOC_S_CTRL(fd):
 
             control = v4l2.v4l2_control(queryctrl.id, queryctrl.default)
             v4l2.ioctl(fd, v4l2.VIDIOC_S_CTRL, control)
+            control.value = queryctrl.minimum + queryctrl.step
+            v4l2.ioctl(fd, v4l2.VIDIOC_S_CTRL, control)
+
+            control.value = queryctrl.minimum - queryctrl.step
+            try:
+                v4l2.ioctl(fd, v4l2.VIDIOC_S_CTRL, control)
+            except IOError, e:
+                assert e.errno in (
+                    os.errno.ERANGE, os.errno.EINVAL, os.errno.EIO)
+            control.value = queryctrl.maximum + queryctrl.step
+            try:
+                v4l2.ioctl(fd, v4l2.VIDIOC_S_CTRL, control)
+            except IOError, e:
+                assert e.errno in (
+                    os.errno.ERANGE, os.errno.EINVAL, os.errno.EIO)
+            if queryctrl.step > 1:
+                control.value = queryctrl.default + queryctrl.step - 1
+                try:
+                    v4l2.ioctl(fd, v4l2.VIDIOC_S_CTRL, control)
+                except IOError, e:
+                    assert e.errno == os.errno.ERANGE
 
             v4l2.ioctl(fd, v4l2.VIDIOC_S_CTRL, original_control)
 

@@ -487,11 +487,11 @@ def test_VIDIOC_QUERYCTRL(fd):
             assert queryctrl.step > 0
             if queryctrl.flags:
                 assert queryctrl.flags & (
-                    v4l2.V4L2_CTRL_FLAG_DISABLED,
-                    v4l2.V4L2_CTRL_FLAG_GRABBED,
-                    v4l2.V4L2_CTRL_FLAG_READ_ONLY,
-                    v4l2.V4L2_CTRL_FLAG_UPDATE,
-                    v4l2.V4L2_CTRL_FLAG_INACTIVE,
+                    v4l2.V4L2_CTRL_FLAG_DISABLED |
+                    v4l2.V4L2_CTRL_FLAG_GRABBED |
+                    v4l2.V4L2_CTRL_FLAG_READ_ONLY |
+                    v4l2.V4L2_CTRL_FLAG_UPDATE |
+                    v4l2.V4L2_CTRL_FLAG_INACTIVE |
                     v4l2.V4L2_CTRL_FLAG_SLIDER)
             assert queryctrl.reserved[0] == 0
             assert queryctrl.reserved[1] == 0

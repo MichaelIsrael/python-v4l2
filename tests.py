@@ -202,7 +202,7 @@ def get_device_controls(fd):
             queryctrl.id += 1
             continue
         yield queryctrl
-        queryctrl.id += 1
+        queryctrl = v4l2.v4l2_queryctrl(queryctrl.id + 1)
 
     queryctrl.id = v4l2.V4L2_CID_PRIVATE_BASE
     while True:
@@ -213,7 +213,7 @@ def get_device_controls(fd):
             assert e.errno == v4l2.errno.EINVAL
             break
         yield queryctrl
-        queryctrl.id += 1
+        queryctrl = v4l2.v4l2_queryctrl(queryctrl.id + 1)
     
     
 def get_device_controls_by_class(fd, control_class):
@@ -230,7 +230,8 @@ def get_device_controls_by_class(fd, control_class):
         if (v4l2.V4L2_CTRL_ID2CLASS(queryctrl.id) != control_class):
             break
         yield queryctrl
-        queryctrl.id |= v4l2.V4L2_CTRL_FLAG_NEXT_CTRL
+        queryctrl = v4l2.v4l2_queryctrl(
+            queryctrl.id | v4l2.V4L2_CTRL_FLAG_NEXT_CTRL)
     
 
 def get_device_controls_menu(fd, queryctrl):
@@ -518,11 +519,14 @@ def test_VIDIOC_QUERYCTRL(fd):
             for queryctrl in get_device_controls_by_class(fd, class_):
                 assert_valid_queryctrl(queryctrl)
 
-    # test for input devices
+    # general test
+    foreach_device_input(fd, test_controls)
+
+    # test for each input devices
     if cap.capabilities & v4l2.V4L2_CAP_VIDEO_CAPTURE:
         foreach_device_input(fd, test_controls)
 
-    # test for output devices
+    # test for each output devices
     if cap.capabilities & v4l2.V4L2_CAP_VIDEO_OUTPUT:
         foreach_device_output(fd, test_controls)
 
@@ -537,12 +541,15 @@ def test_VIDIOC_QUERYMENU(fd):
                 for querymenu in get_device_controls_menu(fd, queryctrl):
                     assert valid_string(querymenu.name)
                     assert querymenu.reserved == 0
+        
+    # general test
+    foreach_device_input(fd, test_query_menu)
 
-    # test for input devices
+    # test for each input devices
     if cap.capabilities & v4l2.V4L2_CAP_VIDEO_CAPTURE:
         foreach_device_input(fd, test_query_menu)
 
-    # test for output devices
+    # test for each output devices
     if cap.capabilities & v4l2.V4L2_CAP_VIDEO_OUTPUT:
         foreach_device_output(fd, test_query_menu)
 
@@ -562,11 +569,14 @@ def test_VIDIOC_G_CTRL(fd):
             assert control.value >= queryctrl.minimum
             assert control.value <= queryctrl.maximum
 
-    # test for input devices
+    # general test
+    foreach_device_input(fd, test_get_control)
+
+    # test for each input devices
     if cap.capabilities & v4l2.V4L2_CAP_VIDEO_CAPTURE:
         foreach_device_input(fd, test_get_control)
 
-    # test for output devices
+    # test for each output devices
     if cap.capabilities & v4l2.V4L2_CAP_VIDEO_OUTPUT:
         foreach_device_output(fd, test_get_control)
 
@@ -609,13 +619,177 @@ def test_VIDIOC_S_CTRL(fd):
 
             v4l2.ioctl(fd, v4l2.VIDIOC_S_CTRL, original_control)
 
-    # test for input devices
+    # general test
+    foreach_device_input(fd, test_set_control)
+
+    # test for each input devices
     if cap.capabilities & v4l2.V4L2_CAP_VIDEO_CAPTURE:
         foreach_device_input(fd, test_set_control)
 
-    # test for output devices
+    # test for each output devices
     if cap.capabilities & v4l2.V4L2_CAP_VIDEO_OUTPUT:
         foreach_device_output(fd, test_set_control)
+
+
+def test_VIDIOC_G_EXT_CTRLS(fd):
+    cap = v4l2.v4l2_capability()
+    v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
+
+    for class_ in (
+        v4l2.V4L2_CTRL_CLASS_USER,
+        v4l2.V4L2_CTRL_CLASS_MPEG,
+        v4l2.V4L2_CTRL_CLASS_CAMERA):
+
+        def get_controls(fd, input_or_output):
+            # first we get the controls through enumeration
+            # note, currently not distinguishing by disabled flag.
+            queryctrls = list(get_device_controls_by_class(fd, class_))
+
+            control_array = (v4l2.v4l2_ext_control * len(queryctrls))()
+            for index, queryctrl in enumerate(queryctrls):
+                control_array[index].id = queryctrl.id
+            ext_controls = v4l2.v4l2_ext_controls(class_, len(queryctrls))
+            ext_controls.controls = control_array
+
+            try:
+                v4l2.ioctl(fd, v4l2.VIDIOC_G_EXT_CTRLS, ext_controls)
+            except IOError, e:
+                assert e.errno == v4l2.errno.EINVAL
+                assert not queryctrls
+                return
+
+            assert ext_controls.error_idx == 0
+            assert ext_controls.reserved[0] == 0
+            assert ext_controls.reserved[1] == 0
+            for index, control in enumerate(control_array):
+                assert control.value >= queryctrls[index].minimum
+                assert control.value <= queryctrls[index].maximum
+
+        # general test
+        foreach_device_input(fd, get_controls)
+
+        # test for each input devices
+        if cap.capabilities & v4l2.V4L2_CAP_VIDEO_CAPTURE:
+            foreach_device_input(fd, get_controls)
+
+        # test for each output devices
+        if cap.capabilities & v4l2.V4L2_CAP_VIDEO_OUTPUT:
+            foreach_device_output(fd, get_controls)
+
+
+def test_VIDIOC_S_EXT_CTRLS(fd):
+    cap = v4l2.v4l2_capability()
+    v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
+
+    for class_ in (
+        v4l2.V4L2_CTRL_CLASS_USER,
+        v4l2.V4L2_CTRL_CLASS_MPEG,
+        v4l2.V4L2_CTRL_CLASS_CAMERA):
+
+        def set_controls(fd, input_or_output):
+            # first we get the controls through enumeration
+            queryctrls = list(get_device_controls_by_class(fd, class_))
+
+            control_array = (v4l2.v4l2_ext_control * len(queryctrls))()
+            for index, queryctrl in enumerate(queryctrls):
+                control_array[index].id = queryctrl.id
+            ext_controls = v4l2.v4l2_ext_controls(class_, len(queryctrls))
+            ext_controls.controls = control_array
+
+            # we store the original values so we can set them back later
+            try:
+                v4l2.ioctl(fd, v4l2.VIDIOC_G_EXT_CTRLS, ext_controls)
+            except IOError, e:
+                assert e.errno == v4l2.errno.EINVAL
+                assert not queryctrls
+                return
+            original_values = [(c.value, c.value64) for c in control_array]
+
+            # set to minimum value
+            for index, control in enumerate(control_array):
+                control.value = queryctrls[index].minimum
+                control.value64 = queryctrls[index].minimum
+            v4l2.ioctl(fd, v4l2.VIDIOC_S_EXT_CTRLS, ext_controls)
+
+            # test invalid control
+            if queryctrls:
+                control_array[-1].value = 1 << 31
+                control_array[-1].value64 = 1 << 32
+                try:
+                    v4l2.ioctl(fd, v4l2.VIDIOC_S_EXT_CTRLS, ext_controls)
+                except IOError, e:
+                    # the driver may either prune the value or raise
+                    # ERANGE if control value is out of bounds
+                    assert e.errno == v4l2.errno.ERANGE
+                    assert ext_controls.error_idx == len(control_array) - 1
+
+            # set back original values
+            for index, control in enumerate(control_array):
+                control.value = original_values[index][0]
+                control.value64 = original_values[index][1]
+            v4l2.ioctl(fd, v4l2.VIDIOC_S_EXT_CTRLS, ext_controls)
+
+        # general test
+        foreach_device_input(fd, set_controls)
+
+        # test for each input devices
+        if cap.capabilities & v4l2.V4L2_CAP_VIDEO_CAPTURE:
+            foreach_device_input(fd, set_controls)
+
+        # test for each output devices
+        if cap.capabilities & v4l2.V4L2_CAP_VIDEO_OUTPUT:
+            foreach_device_output(fd, set_controls)
+
+
+def test_VIDIOC_TRY_EXT_CTRLS(fd):
+    cap = v4l2.v4l2_capability()
+    v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
+
+    for class_ in (
+        v4l2.V4L2_CTRL_CLASS_USER,
+        v4l2.V4L2_CTRL_CLASS_MPEG,
+        v4l2.V4L2_CTRL_CLASS_CAMERA):
+
+        def try_controls(fd, input_or_output):
+            # first we get the controls through enumeration
+            queryctrls = list(get_device_controls_by_class(fd, class_))
+
+            # try sane values
+            control_array = (v4l2.v4l2_ext_control * len(queryctrls))()
+            for index, queryctrl in enumerate(queryctrls):
+                control_array[index].id = queryctrl.id
+                control_array[index].value = queryctrl.default
+            ext_controls = v4l2.v4l2_ext_controls(class_, len(queryctrls))
+            ext_controls.controls = control_array
+            try:
+                v4l2.ioctl(fd, v4l2.VIDIOC_TRY_EXT_CTRLS, ext_controls)
+            except IOError, e:
+                # driver may raise EINVAL if the control array has a
+                # length of zero
+                assert e.errno == v4l2.errno.EINVAL
+                assert not queryctrls
+                return
+
+            # try invalid values
+            for index, control in enumerate(control_array):
+                control.value = queryctrls[index].maximum + 1
+                control.value64 = queryctrls[index].maximum + 1
+            try:
+                v4l2.ioctl(fd, v4l2.VIDIOC_TRY_EXT_CTRLS, ext_controls)
+            except IOError, e:
+                assert e.errno == v4l2.errno.EINVAL
+                assert ext_controls.error_idx != 0
+
+        # general test
+        foreach_device_input(fd, try_controls)
+
+        # test for each input devices
+        if cap.capabilities & v4l2.V4L2_CAP_VIDEO_CAPTURE:
+            foreach_device_input(fd, try_controls)
+
+        # test for each output devices
+        if cap.capabilities & v4l2.V4L2_CAP_VIDEO_OUTPUT:
+            foreach_device_output(fd, try_controls)
 
 
 #

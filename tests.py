@@ -243,13 +243,6 @@ def test_VIDIOC_QUERYCAP(fd):
     assert cap.reserved[3] == 0
 
 
-def test_VIDIOC_QUERYCAP_NULL(fd):
-    try:
-        v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, None)
-    except TypeError, e:
-        pass
-
-
 def test_VIDIOC_G_INPUT(fd):
     cap = v4l2.v4l2_capability()
     v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)

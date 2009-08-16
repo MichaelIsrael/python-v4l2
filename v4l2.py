@@ -46,35 +46,9 @@ Python bindings for the v4l2 userspace api
 
 # see linux/videodev2.h
 
-import fcntl
 import ctypes
 from os import errno
-
-
-#
-# ioctl
-#
-
-ctypes.pythonapi.PyBuffer_FromReadWriteMemory.restype = ctypes.py_object
-
-
-def to_rw_buffer(obj):
-    """
-    Get a r/w buffer object of a ctypes object, which can be passed to
-    `fcntl.ioctl`'s `arg` kwarg.
-    """
-    return ctypes.pythonapi.PyBuffer_FromReadWriteMemory(
-        ctypes.byref(obj), ctypes.sizeof(obj))
-
-
-def ioctl(fd, op, arg=None):
-    """
-    A wrapper arount `fcntl.ioctl` that automatically handles ctypes
-    objects.  Most v4l2 struct instances are mutated.
-    """
-    if arg is not None:
-        arg = to_rw_buffer(arg)
-    return fcntl.ioctl(fd, op, arg, True)
+from fcntl import ioctl
 
 
 _IOC_NRBITS = 8
@@ -121,7 +95,7 @@ def _IOWR(type_, nr, size):
 
 
 #
-# type definitions
+# type alias
 #
 
 enum = ctypes.c_uint

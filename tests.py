@@ -190,6 +190,7 @@ def get_device_standards(fd):
 
 
 def get_device_controls(fd):
+    # original enumeration method
     queryctrl = v4l2.v4l2_queryctrl(v4l2.V4L2_CID_BASE)
 
     while queryctrl.id < v4l2.V4L2_CID_LASTP1:
@@ -213,6 +214,23 @@ def get_device_controls(fd):
             break
         yield queryctrl
         queryctrl.id += 1
+    
+    
+def get_device_controls_by_class(fd, control_class):
+    # enumeration by control class
+    queryctrl = v4l2.v4l2_queryctrl(
+        control_class | v4l2.V4L2_CTRL_FLAG_NEXT_CTRL)
+
+    while True:
+        try:
+            v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCTRL, queryctrl)
+        except IOError, e:
+            assert e.errno == v4l2.errno.EINVAL
+            break
+        if (v4l2.V4L2_CTRL_ID2CLASS(queryctrl.id) != control_class):
+            break
+        yield queryctrl
+        queryctrl.id |= v4l2.V4L2_CTRL_FLAG_NEXT_CTRL
     
 
 def get_device_controls_menu(fd, queryctrl):
@@ -465,36 +483,48 @@ def test_VIDIOC_QUERYCTRL(fd):
     cap = v4l2.v4l2_capability()
     v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
 
-    def test_query_control(fd, input_or_output):
+    def assert_valid_queryctrl(queryctrl):
+        assert queryctrl.type & (
+            v4l2.V4L2_CTRL_TYPE_INTEGER |
+            v4l2.V4L2_CTRL_TYPE_BOOLEAN |
+            v4l2.V4L2_CTRL_TYPE_MENU |
+            v4l2.V4L2_CTRL_TYPE_BUTTON |
+            v4l2.V4L2_CTRL_TYPE_INTEGER64 |
+            v4l2.V4L2_CTRL_TYPE_CTRL_CLASS)
+        assert valid_string(queryctrl.name)
+        assert queryctrl.minimum < queryctrl.maximum
+        assert queryctrl.step > 0
+        if queryctrl.flags:
+            assert queryctrl.flags & (
+                v4l2.V4L2_CTRL_FLAG_DISABLED |
+                v4l2.V4L2_CTRL_FLAG_GRABBED |
+                v4l2.V4L2_CTRL_FLAG_READ_ONLY |
+                v4l2.V4L2_CTRL_FLAG_UPDATE |
+                v4l2.V4L2_CTRL_FLAG_INACTIVE |
+                v4l2.V4L2_CTRL_FLAG_SLIDER)
+        assert queryctrl.reserved[0] == 0
+        assert queryctrl.reserved[1] == 0
+
+    def test_controls(fd, input_or_output):
+        # original enumeration method
         for queryctrl in get_device_controls(fd):
-            assert queryctrl.type & (
-                v4l2.V4L2_CTRL_TYPE_INTEGER |
-                v4l2.V4L2_CTRL_TYPE_BOOLEAN |
-                v4l2.V4L2_CTRL_TYPE_MENU |
-                v4l2.V4L2_CTRL_TYPE_BUTTON |
-                v4l2.V4L2_CTRL_TYPE_INTEGER64 |
-                v4l2.V4L2_CTRL_TYPE_CTRL_CLASS)
-            assert valid_string(queryctrl.name)
-            assert queryctrl.minimum < queryctrl.maximum
-            assert queryctrl.step > 0
-            if queryctrl.flags:
-                assert queryctrl.flags & (
-                    v4l2.V4L2_CTRL_FLAG_DISABLED |
-                    v4l2.V4L2_CTRL_FLAG_GRABBED |
-                    v4l2.V4L2_CTRL_FLAG_READ_ONLY |
-                    v4l2.V4L2_CTRL_FLAG_UPDATE |
-                    v4l2.V4L2_CTRL_FLAG_INACTIVE |
-                    v4l2.V4L2_CTRL_FLAG_SLIDER)
-            assert queryctrl.reserved[0] == 0
-            assert queryctrl.reserved[1] == 0
+            assert_valid_queryctrl(queryctrl)
+
+        # enumeration by control class
+        for class_ in (
+            v4l2.V4L2_CTRL_CLASS_USER,
+            v4l2.V4L2_CTRL_CLASS_MPEG,
+            v4l2.V4L2_CTRL_CLASS_CAMERA):
+            for queryctrl in get_device_controls_by_class(fd, class_):
+                assert_valid_queryctrl(queryctrl)
 
     # test for input devices
     if cap.capabilities & v4l2.V4L2_CAP_VIDEO_CAPTURE:
-        foreach_device_input(fd, test_query_control)
+        foreach_device_input(fd, test_controls)
 
     # test for output devices
     if cap.capabilities & v4l2.V4L2_CAP_VIDEO_OUTPUT:
-        foreach_device_output(fd, test_query_control)
+        foreach_device_output(fd, test_controls)
 
 
 def test_VIDIOC_QUERYMENU(fd):
@@ -611,21 +641,23 @@ def pytest_generate_tests(metafunc):
         metafunc.addcall(funcargs=dict(fd=fd))
 
 
+def run():
+    import sys
+    open_devices()
+
+    tests = [
+        obj for member, obj in globals().items()
+        if member.startswith('test_')]
+    tests.sort(key=lambda t: id(t))
+
+    for testfunc in tests:
+        for fd in devices:
+            try:
+                testfunc(fd)
+            except:
+                sys.stderr.write('fd = %r\n' % fd)
+                raise
+
+
 if __name__ == '__main__':
-    def run():
-        import sys
-        open_devices()
-
-        tests = [
-            obj for member, obj in globals().items()
-            if member.startswith('test_')]
-        tests.sort(key=lambda t: id(t))
-
-        for testfunc in tests:
-            for fd in devices:
-                try:
-                    testfunc(fd)
-                except:
-                    sys.stderr.write('fd = %r\n' % fd)
-                    raise
     run()

@@ -157,10 +157,21 @@ def foreach_device_input(fd, func):
     v4l2.ioctl(fd, v4l2.VIDIOC_G_INPUT, original_index)
 
     for input_ in get_device_inputs(fd):
-        v4l2.ioctl(fd, v4l2.VIDIOC_S_INPUT, v4l2.c_int(input_.index))
+        if input_.index != original_index.value:
+            try:
+                v4l2.ioctl(fd, v4l2.VIDIOC_S_INPUT, v4l2.c_int(input_.index))
+            except IOError, e:
+                if e.errno == v4l2.errno.EBUSY:
+                    continue
+                else:
+                    raise
         func(fd, input_)
 
-    v4l2.ioctl(fd, v4l2.VIDIOC_S_INPUT, original_index)
+    try:
+        v4l2.ioctl(fd, v4l2.VIDIOC_S_INPUT, original_index)
+    except IOError, e:
+        if not (e.errno == v4l2.errno.EBUSY):
+            raise
 
 
 def foreach_device_output(fd, func):
@@ -168,10 +179,21 @@ def foreach_device_output(fd, func):
     v4l2.ioctl(fd, v4l2.VIDIOC_G_OUTPUT, original_index)
 
     for output in get_device_outputs(fd):
-        v4l2.ioctl(fd, v4l2.VIDIOC_S_OUTPUT, v4l2.c_int(output.index))
+        if output_.index != original_index.value:
+            try:
+                v4l2.ioctl(fd, v4l2.VIDIOC_S_OUTPUT, v4l2.c_int(output.index))
+            except IOError, e:
+                if e.errno == v4l2.errno.EBUSY:
+                    continue
+                else:
+                    raise
         func(fd, output)
 
-    v4l2.ioctl(fd, v4l2.VIDIOC_S_INPUT, original_index)
+    try:
+        v4l2.ioctl(fd, v4l2.VIDIOC_S_INPUT, original_index)
+    except IOError, e:
+        if not (e.errno == v4l2.errno.EBUSY):
+            raise
 
 
 def get_device_standards(fd):
@@ -283,7 +305,11 @@ def test_VIDIOC_S_INPUT(fd):
         return
 
     index = v4l2.c_int(0)
-    v4l2.ioctl(fd, v4l2.VIDIOC_S_INPUT, index)
+    try:
+        v4l2.ioctl(fd, v4l2.VIDIOC_S_INPUT, index)
+    except IOError, e:
+        assert e.errno == v4l2.errno.EBUSY
+        return
 
     index.value = 1 << 31
     try:

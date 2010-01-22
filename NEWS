@@ -1,0 +1,16 @@
+v4l2 Releases
+=============
+
+0.1.1
+-----
+
+* Fixed bug in ``v4l2_fourcc()`` that generated bad V4L2_PIX_FMT_*
+  constants; closes `#510758`_ (Thanks, Vesselin Petkov).
+
+.. _`#510758`: https://bugs.launchpad.net/python-v4l2/+bug/510758
+
+
+0.1
+---
+
+* Initial release.

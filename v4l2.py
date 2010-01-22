@@ -138,7 +138,7 @@ VID_TYPE_MJPEG_ENCODER = 8192
 
 
 def v4l2_fourcc(a, b, c, d):
-    return ord(a) | (ord(b) << 8) | (ord(c) << 16) | (ord(c) << 24)
+    return ord(a) | (ord(b) << 8) | (ord(c) << 16) | (ord(d) << 24)
 
 
 v4l2_field = enum

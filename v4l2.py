@@ -839,6 +839,7 @@ class v4l2_ext_control(ctypes.Structure):
     ]
 
     _anonymous_ = ('_u',)
+    _pack_ = True
 
 
 class v4l2_ext_controls(ctypes.Structure):
@@ -1509,6 +1510,8 @@ class v4l2_register(ctypes.Structure):
         ('val', ctypes.c_uint64),
     ]
 
+    _pack_ = True
+
 
 class v4l2_chip_ident(ctypes.Structure):
     _fields_ = [
@@ -1518,6 +1521,8 @@ class v4l2_chip_ident(ctypes.Structure):
         ('version', ctypes.c_uint32),
     ]
 
+    _pack_ = True
+    
 
 #
 # ioctl codes for video devices

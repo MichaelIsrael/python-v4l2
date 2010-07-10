@@ -1,6 +1,15 @@
 v4l2 Releases
 =============
 
+0.1.2
+-----
+
+* Added missing ``_pack_`` attributes on ``v4l2_ext_control``,
+  ``v4l2_register``, and ``v4l2_chip_ident`` structures; closes
+  `#603311`_ (Thanks, Pete Eberlein)
+
+.. _`#603311`: https://bugs.launchpad.net/python-v4l2/+bug/603311
+
 0.1.1
 -----
 
@@ -8,7 +17,6 @@ v4l2 Releases
   constants; closes `#510758`_ (Thanks, Vesselin Petkov).
 
 .. _`#510758`: https://bugs.launchpad.net/python-v4l2/+bug/510758
-
 
 0.1
 ---

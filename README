@@ -14,7 +14,8 @@ ctypes.  Basic example usage::
     >>> cp.card
     'USB 2.0 Camera'
 
-See the ``linux/videodev2.h`` header file for details.
+See the ``linux/videodev2.h`` header file for details.  Currently the
+bindings are up to date with the 2.6.24 kernel headers.
 
 * `Video for Linux Two Specification <http://v4l2spec.bytesex.org/>`_
 * `Reporting bugs <http://bugs.launchpad.net/python-v4l2>`_

@@ -47,7 +47,6 @@ Python bindings for the v4l2 userspace api
 # see linux/videodev2.h
 
 import ctypes
-from fcntl import ioctl
 
 
 _IOC_NRBITS = 8

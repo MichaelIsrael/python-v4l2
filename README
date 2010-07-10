@@ -5,9 +5,10 @@ A Python binding for the v4l2 (video4linux2) userspace api, using
 ctypes.  Basic example usage::
 
     >>> import v4l2
+    >>> import fcntl
     >>> vd = open('/dev/video0', 'rw')
     >>> cp = v4l2.v4l2_capability()
-    >>> v4l2.ioctl(vd, v4l2.VIDIOC_QUERYCAP, cp)
+    >>> fcntl.ioctl(vd, v4l2.VIDIOC_QUERYCAP, cp)
     0
     >>> cp.driver
     'uvcvideo'

@@ -45,6 +45,8 @@ Tests for Python bindings for the v4l2 userspace api
 """
 
 import v4l2
+import errno
+from fcntl import ioctl
 
 
 #
@@ -131,9 +133,9 @@ def get_device_inputs(fd):
     while True:
         input_ = v4l2.v4l2_input(index)
         try:
-            v4l2.ioctl(fd, v4l2.VIDIOC_ENUMINPUT, input_)
+            ioctl(fd, v4l2.VIDIOC_ENUMINPUT, input_)
         except IOError, e:
-            assert e.errno == v4l2.errno.EINVAL
+            assert e.errno == errno.EINVAL
             break
         yield input_
         index += 1
@@ -144,9 +146,9 @@ def get_device_outputs(fd):
     while True:
         output = v4l2.v4l2_output(index)
         try:
-            v4l2.ioctl(fd, v4l2.VIDIOC_ENUMOUTPUT, output)
+            ioctl(fd, v4l2.VIDIOC_ENUMOUTPUT, output)
         except IOError, e:
-            assert e.errno == v4l2.errno.EINVAL
+            assert e.errno == errno.EINVAL
             break
         yield output
         index += 1
@@ -154,45 +156,45 @@ def get_device_outputs(fd):
 
 def foreach_device_input(fd, func):
     original_index = v4l2.c_int()
-    v4l2.ioctl(fd, v4l2.VIDIOC_G_INPUT, original_index)
+    ioctl(fd, v4l2.VIDIOC_G_INPUT, original_index)
 
     for input_ in get_device_inputs(fd):
         if input_.index != original_index.value:
             try:
-                v4l2.ioctl(fd, v4l2.VIDIOC_S_INPUT, v4l2.c_int(input_.index))
+                ioctl(fd, v4l2.VIDIOC_S_INPUT, v4l2.c_int(input_.index))
             except IOError, e:
-                if e.errno == v4l2.errno.EBUSY:
+                if e.errno == errno.EBUSY:
                     continue
                 else:
                     raise
         func(fd, input_)
 
     try:
-        v4l2.ioctl(fd, v4l2.VIDIOC_S_INPUT, original_index)
+        ioctl(fd, v4l2.VIDIOC_S_INPUT, original_index)
     except IOError, e:
-        if not (e.errno == v4l2.errno.EBUSY):
+        if not (e.errno == errno.EBUSY):
             raise
 
 
 def foreach_device_output(fd, func):
     original_index = v4l2.c_int()
-    v4l2.ioctl(fd, v4l2.VIDIOC_G_OUTPUT, original_index)
+    ioctl(fd, v4l2.VIDIOC_G_OUTPUT, original_index)
 
     for output in get_device_outputs(fd):
         if output_.index != original_index.value:
             try:
-                v4l2.ioctl(fd, v4l2.VIDIOC_S_OUTPUT, v4l2.c_int(output.index))
+                ioctl(fd, v4l2.VIDIOC_S_OUTPUT, v4l2.c_int(output.index))
             except IOError, e:
-                if e.errno == v4l2.errno.EBUSY:
+                if e.errno == errno.EBUSY:
                     continue
                 else:
                     raise
         func(fd, output)
 
     try:
-        v4l2.ioctl(fd, v4l2.VIDIOC_S_INPUT, original_index)
+        ioctl(fd, v4l2.VIDIOC_S_INPUT, original_index)
     except IOError, e:
-        if not (e.errno == v4l2.errno.EBUSY):
+        if not (e.errno == errno.EBUSY):
             raise
 
 
@@ -203,9 +205,9 @@ def get_device_standards(fd):
     while True:
         std = v4l2.v4l2_standard(index)
         try:
-            v4l2.ioctl(fd, v4l2.VIDIOC_ENUMSTD, std)
+            ioctl(fd, v4l2.VIDIOC_ENUMSTD, std)
         except IOError, e:
-            assert e.errno == v4l2.errno.EINVAL
+            assert e.errno == errno.EINVAL
             break
         yield std
         index += 1
@@ -217,10 +219,10 @@ def get_device_controls(fd):
 
     while queryctrl.id < v4l2.V4L2_CID_LASTP1:
         try:
-            v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCTRL, queryctrl)
+            ioctl(fd, v4l2.VIDIOC_QUERYCTRL, queryctrl)
         except IOError, e:
             # this predefined control is not supported by this device
-            assert e.errno == v4l2.errno.EINVAL
+            assert e.errno == errno.EINVAL
             queryctrl.id += 1
             continue
         yield queryctrl
@@ -229,10 +231,10 @@ def get_device_controls(fd):
     queryctrl.id = v4l2.V4L2_CID_PRIVATE_BASE
     while True:
         try:
-            v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCTRL, queryctrl)
+            ioctl(fd, v4l2.VIDIOC_QUERYCTRL, queryctrl)
         except IOError, e:
             # no more custom controls available on this device
-            assert e.errno == v4l2.errno.EINVAL
+            assert e.errno == errno.EINVAL
             break
         yield queryctrl
         queryctrl = v4l2.v4l2_queryctrl(queryctrl.id + 1)
@@ -245,9 +247,9 @@ def get_device_controls_by_class(fd, control_class):
 
     while True:
         try:
-            v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCTRL, queryctrl)
+            ioctl(fd, v4l2.VIDIOC_QUERYCTRL, queryctrl)
         except IOError, e:
-            assert e.errno == v4l2.errno.EINVAL
+            assert e.errno == errno.EINVAL
             break
         if (v4l2.V4L2_CTRL_ID2CLASS(queryctrl.id) != control_class):
             break
@@ -259,7 +261,7 @@ def get_device_controls_by_class(fd, control_class):
 def get_device_controls_menu(fd, queryctrl):
     querymenu = v4l2.v4l2_querymenu(queryctrl.id, queryctrl.minimum)
     while querymenu.index <= queryctrl.maximum:
-        v4l2.ioctl(fd, v4l2.VIDIOC_QUERYMENU, querymenu)
+        ioctl(fd, v4l2.VIDIOC_QUERYMENU, querymenu)
         yield querymenu
         querymenu.index += 1
 
@@ -271,7 +273,7 @@ def get_device_controls_menu(fd, queryctrl):
 def test_VIDIOC_QUERYCAP(fd):
     cap = v4l2.v4l2_capability()
 
-    v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
+    ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
 
     assert 0 < len(cap.driver)
     assert valid_string(cap.card)
@@ -286,19 +288,19 @@ def test_VIDIOC_QUERYCAP(fd):
 
 def test_VIDIOC_G_INPUT(fd):
     cap = v4l2.v4l2_capability()
-    v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
+    ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
 
     if not cap.capabilities & v4l2.V4L2_CAP_VIDEO_CAPTURE:
         # test does not apply for this device
         return
 
     index = v4l2.c_int()
-    v4l2.ioctl(fd, v4l2.VIDIOC_G_INPUT, index)
+    ioctl(fd, v4l2.VIDIOC_G_INPUT, index)
 
 
 def test_VIDIOC_S_INPUT(fd):
     cap = v4l2.v4l2_capability()
-    v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
+    ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
 
     if not cap.capabilities & v4l2.V4L2_CAP_VIDEO_CAPTURE:
         # test does not apply for this device
@@ -306,51 +308,51 @@ def test_VIDIOC_S_INPUT(fd):
 
     index = v4l2.c_int(0)
     try:
-        v4l2.ioctl(fd, v4l2.VIDIOC_S_INPUT, index)
+        ioctl(fd, v4l2.VIDIOC_S_INPUT, index)
     except IOError, e:
-        assert e.errno == v4l2.errno.EBUSY
+        assert e.errno == errno.EBUSY
         return
 
     index.value = 1 << 31
     try:
-        v4l2.ioctl(fd, v4l2.VIDIOC_S_INPUT, index)
+        ioctl(fd, v4l2.VIDIOC_S_INPUT, index)
     except IOError, e:
-        assert e.errno == v4l2.errno.EINVAL
+        assert e.errno == errno.EINVAL
 
 
 def test_VIDIOC_G_OUTPUT(fd):
     cap = v4l2.v4l2_capability()
-    v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
+    ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
 
     if not cap.capabilities & v4l2.V4L2_CAP_VIDEO_OUTPUT:
         # test does not apply for this device
         return
 
     index = v4l2.c_int()
-    v4l2.ioctl(fd, v4l2.VIDIOC_G_OUTPUT, index)
+    ioctl(fd, v4l2.VIDIOC_G_OUTPUT, index)
 
 
 def test_VIDIOC_S_OUTPUT(fd):
     cap = v4l2.v4l2_capability()
-    v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
+    ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
 
     if not cap.capabilities & v4l2.V4L2_CAP_VIDEO_OUTPUT:
         # test does not apply for this device
         return
 
     index = v4l2.c_int(0)
-    v4l2.ioctl(fd, v4l2.VIDIOC_S_OUTPUT, index)
+    ioctl(fd, v4l2.VIDIOC_S_OUTPUT, index)
 
     index.value = 1 << 31
     try:
-        v4l2.ioctl(fd, v4l2.VIDIOC_S_OUTPUT, index)
+        ioctl(fd, v4l2.VIDIOC_S_OUTPUT, index)
     except IOError, e:
-        assert e.errno == v4l2.errno.EINVAL
+        assert e.errno == errno.EINVAL
 
 
 def test_VIDIOC_ENUMINPUT(fd):
     cap = v4l2.v4l2_capability()
-    v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
+    ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
 
     if not cap.capabilities & v4l2.V4L2_CAP_VIDEO_CAPTURE:
         # test does not apply for this device
@@ -375,7 +377,7 @@ def test_VIDIOC_ENUMINPUT(fd):
 
 def test_VIDIOC_ENUMOUTPUT(fd):
     cap = v4l2.v4l2_capability()
-    v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
+    ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
 
     if not cap.capabilities & v4l2.V4L2_CAP_VIDEO_OUTPUT:
         # test does not apply for this device
@@ -397,7 +399,7 @@ def test_VIDIOC_ENUMOUTPUT(fd):
 
 def test_VIDIOC_ENUMSTD(fd):
     cap = v4l2.v4l2_capability()
-    v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
+    ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
 
     def assert_valid_standard(index, std):
         # assert std.index == index
@@ -430,14 +432,14 @@ def test_VIDIOC_ENUMSTD(fd):
 
 def test_VIDIOC_G_STD(fd):
     cap = v4l2.v4l2_capability()
-    v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
+    ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
 
     def test_get_standard(fd, input_or_output):
         std_id = v4l2.v4l2_std_id()
         try:
-            v4l2.ioctl(fd, v4l2.VIDIOC_G_STD, std_id)
+            ioctl(fd, v4l2.VIDIOC_G_STD, std_id)
         except IOError, e:
-            assert e.errno == v4l2.errno.EINVAL
+            assert e.errno == errno.EINVAL
             # input/output may not support a standard
             return
         assert valid_v4l2_std_id(std_id.value)
@@ -453,27 +455,27 @@ def test_VIDIOC_G_STD(fd):
 
 def test_VIDIOC_S_STD(fd):
     cap = v4l2.v4l2_capability()
-    v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
+    ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
 
     def test_set_standard(fd, input_or_output):
         original_std_id = v4l2.v4l2_std_id()
         try:
-            v4l2.ioctl(fd, v4l2.VIDIOC_G_STD, original_std_id)
+            ioctl(fd, v4l2.VIDIOC_G_STD, original_std_id)
         except IOError, e:
-            assert e.errno == v4l2.errno.EINVAL
+            assert e.errno == errno.EINVAL
             return
 
         for std in get_device_standards(fd):
             std_id = v4l2.v4l2_std_id(std.id)
-            v4l2.ioctl(fd, v4l2.VIDIOC_S_STD, std_id)
+            ioctl(fd, v4l2.VIDIOC_S_STD, std_id)
 
         bad_std_id = v4l2.v4l2_std_id(1 << 31)
         try:
-            v4l2.ioctl(fd, v4l2.VIDIOC_S_STD, bad_std_id)
+            ioctl(fd, v4l2.VIDIOC_S_STD, bad_std_id)
         except IOError, e:
-            assert e.errno == v4l2.errno.EINVAL
+            assert e.errno == errno.EINVAL
 
-        v4l2.ioctl(fd, v4l2.VIDIOC_S_STD, original_std_id)
+        ioctl(fd, v4l2.VIDIOC_S_STD, original_std_id)
 
     # test for input devices
     if cap.capabilities & v4l2.V4L2_CAP_VIDEO_CAPTURE:
@@ -486,15 +488,15 @@ def test_VIDIOC_S_STD(fd):
 
 def test_VIDIOC_QUERYSTD(fd):
     cap = v4l2.v4l2_capability()
-    v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
+    ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
 
     def test_query_standard(fd, input_):
         std_id = v4l2.v4l2_std_id()
         try:
-            v4l2.ioctl(fd, v4l2.VIDIOC_QUERYSTD, std_id)
+            ioctl(fd, v4l2.VIDIOC_QUERYSTD, std_id)
         except IOError, e:
             # this ioctl might not be supported on this device
-            assert e.errno == v4l2.errno.EINVAL
+            assert e.errno == errno.EINVAL
             return
         assert valid_v4l2_std_id(std_id.value)
 
@@ -508,7 +510,7 @@ def test_VIDIOC_QUERYSTD(fd):
 
 def test_VIDIOC_QUERYCTRL(fd):
     cap = v4l2.v4l2_capability()
-    v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
+    ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
 
     def assert_valid_queryctrl(queryctrl):
         assert queryctrl.type & (
@@ -559,7 +561,7 @@ def test_VIDIOC_QUERYCTRL(fd):
 
 def test_VIDIOC_QUERYMENU(fd):
     cap = v4l2.v4l2_capability()
-    v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
+    ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
 
     def test_query_menu(fd, input_or_output):
         for queryctrl in get_device_controls(fd):
@@ -582,7 +584,7 @@ def test_VIDIOC_QUERYMENU(fd):
 
 def test_VIDIOC_G_CTRL(fd):
     cap = v4l2.v4l2_capability()
-    v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
+    ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
     
     def test_get_control(fd, input_or_output):
         for queryctrl in get_device_controls(fd):
@@ -590,7 +592,7 @@ def test_VIDIOC_G_CTRL(fd):
                 continue
 
             control = v4l2.v4l2_control(queryctrl.id)
-            v4l2.ioctl(fd, v4l2.VIDIOC_G_CTRL, control)
+            ioctl(fd, v4l2.VIDIOC_G_CTRL, control)
 
             assert control.value >= queryctrl.minimum
             assert control.value <= queryctrl.maximum
@@ -609,7 +611,7 @@ def test_VIDIOC_G_CTRL(fd):
 
 def test_VIDIOC_S_CTRL(fd):
     cap = v4l2.v4l2_capability()
-    v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
+    ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
     
     def test_set_control(fd, input_or_output):
         for queryctrl in get_device_controls(fd):
@@ -617,33 +619,33 @@ def test_VIDIOC_S_CTRL(fd):
                 continue
 
             original_control = v4l2.v4l2_control(queryctrl.id)
-            v4l2.ioctl(fd, v4l2.VIDIOC_G_CTRL, original_control)
+            ioctl(fd, v4l2.VIDIOC_G_CTRL, original_control)
 
             control = v4l2.v4l2_control(queryctrl.id, queryctrl.default)
-            v4l2.ioctl(fd, v4l2.VIDIOC_S_CTRL, control)
+            ioctl(fd, v4l2.VIDIOC_S_CTRL, control)
             control.value = queryctrl.minimum + queryctrl.step
-            v4l2.ioctl(fd, v4l2.VIDIOC_S_CTRL, control)
+            ioctl(fd, v4l2.VIDIOC_S_CTRL, control)
 
             control.value = queryctrl.minimum - queryctrl.step
             try:
-                v4l2.ioctl(fd, v4l2.VIDIOC_S_CTRL, control)
+                ioctl(fd, v4l2.VIDIOC_S_CTRL, control)
             except IOError, e:
                 assert e.errno in (
-                    v4l2.errno.ERANGE, v4l2.errno.EINVAL, v4l2.errno.EIO)
+                    errno.ERANGE, errno.EINVAL, errno.EIO)
             control.value = queryctrl.maximum + queryctrl.step
             try:
-                v4l2.ioctl(fd, v4l2.VIDIOC_S_CTRL, control)
+                ioctl(fd, v4l2.VIDIOC_S_CTRL, control)
             except IOError, e:
                 assert e.errno in (
-                    v4l2.errno.ERANGE, v4l2.errno.EINVAL, v4l2.errno.EIO)
+                    errno.ERANGE, errno.EINVAL, errno.EIO)
             if queryctrl.step > 1:
                 control.value = queryctrl.default + queryctrl.step - 1
                 try:
-                    v4l2.ioctl(fd, v4l2.VIDIOC_S_CTRL, control)
+                    ioctl(fd, v4l2.VIDIOC_S_CTRL, control)
                 except IOError, e:
-                    assert e.errno == v4l2.errno.ERANGE
+                    assert e.errno == errno.ERANGE
 
-            v4l2.ioctl(fd, v4l2.VIDIOC_S_CTRL, original_control)
+            ioctl(fd, v4l2.VIDIOC_S_CTRL, original_control)
 
     # general test
     foreach_device_input(fd, test_set_control)
@@ -659,7 +661,7 @@ def test_VIDIOC_S_CTRL(fd):
 
 def test_VIDIOC_G_EXT_CTRLS(fd):
     cap = v4l2.v4l2_capability()
-    v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
+    ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
 
     for class_ in (
         v4l2.V4L2_CTRL_CLASS_USER,
@@ -678,9 +680,9 @@ def test_VIDIOC_G_EXT_CTRLS(fd):
             ext_controls.controls = control_array
 
             try:
-                v4l2.ioctl(fd, v4l2.VIDIOC_G_EXT_CTRLS, ext_controls)
+                ioctl(fd, v4l2.VIDIOC_G_EXT_CTRLS, ext_controls)
             except IOError, e:
-                assert e.errno == v4l2.errno.EINVAL
+                assert e.errno == errno.EINVAL
                 assert not queryctrls
                 return
 
@@ -705,7 +707,7 @@ def test_VIDIOC_G_EXT_CTRLS(fd):
 
 def test_VIDIOC_S_EXT_CTRLS(fd):
     cap = v4l2.v4l2_capability()
-    v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
+    ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
 
     for class_ in (
         v4l2.V4L2_CTRL_CLASS_USER,
@@ -724,9 +726,9 @@ def test_VIDIOC_S_EXT_CTRLS(fd):
 
             # we store the original values so we can set them back later
             try:
-                v4l2.ioctl(fd, v4l2.VIDIOC_G_EXT_CTRLS, ext_controls)
+                ioctl(fd, v4l2.VIDIOC_G_EXT_CTRLS, ext_controls)
             except IOError, e:
-                assert e.errno == v4l2.errno.EINVAL
+                assert e.errno == errno.EINVAL
                 assert not queryctrls
                 return
             original_values = [(c.value, c.value64) for c in control_array]
@@ -735,25 +737,25 @@ def test_VIDIOC_S_EXT_CTRLS(fd):
             for index, control in enumerate(control_array):
                 control.value = queryctrls[index].minimum
                 control.value64 = queryctrls[index].minimum
-            v4l2.ioctl(fd, v4l2.VIDIOC_S_EXT_CTRLS, ext_controls)
+            ioctl(fd, v4l2.VIDIOC_S_EXT_CTRLS, ext_controls)
 
             # test invalid control
             if queryctrls:
                 control_array[-1].value = 1 << 31
                 control_array[-1].value64 = 1 << 32
                 try:
-                    v4l2.ioctl(fd, v4l2.VIDIOC_S_EXT_CTRLS, ext_controls)
+                    ioctl(fd, v4l2.VIDIOC_S_EXT_CTRLS, ext_controls)
                 except IOError, e:
                     # the driver may either prune the value or raise
                     # ERANGE if control value is out of bounds
-                    assert e.errno == v4l2.errno.ERANGE
+                    assert e.errno == errno.ERANGE
                     assert ext_controls.error_idx == len(control_array) - 1
 
             # set back original values
             for index, control in enumerate(control_array):
                 control.value = original_values[index][0]
                 control.value64 = original_values[index][1]
-            v4l2.ioctl(fd, v4l2.VIDIOC_S_EXT_CTRLS, ext_controls)
+            ioctl(fd, v4l2.VIDIOC_S_EXT_CTRLS, ext_controls)
 
         # general test
         foreach_device_input(fd, set_controls)
@@ -769,7 +771,7 @@ def test_VIDIOC_S_EXT_CTRLS(fd):
 
 def test_VIDIOC_TRY_EXT_CTRLS(fd):
     cap = v4l2.v4l2_capability()
-    v4l2.ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
+    ioctl(fd, v4l2.VIDIOC_QUERYCAP, cap)
 
     for class_ in (
         v4l2.V4L2_CTRL_CLASS_USER,
@@ -788,11 +790,11 @@ def test_VIDIOC_TRY_EXT_CTRLS(fd):
             ext_controls = v4l2.v4l2_ext_controls(class_, len(queryctrls))
             ext_controls.controls = control_array
             try:
-                v4l2.ioctl(fd, v4l2.VIDIOC_TRY_EXT_CTRLS, ext_controls)
+                ioctl(fd, v4l2.VIDIOC_TRY_EXT_CTRLS, ext_controls)
             except IOError, e:
                 # driver may raise EINVAL if the control array has a
                 # length of zero
-                assert e.errno == v4l2.errno.EINVAL
+                assert e.errno == errno.EINVAL
                 assert not queryctrls
                 return
 
@@ -801,9 +803,9 @@ def test_VIDIOC_TRY_EXT_CTRLS(fd):
                 control.value = queryctrls[index].maximum + 1
                 control.value64 = queryctrls[index].maximum + 1
             try:
-                v4l2.ioctl(fd, v4l2.VIDIOC_TRY_EXT_CTRLS, ext_controls)
+                ioctl(fd, v4l2.VIDIOC_TRY_EXT_CTRLS, ext_controls)
             except IOError, e:
-                assert e.errno == v4l2.errno.EINVAL
+                assert e.errno == errno.EINVAL
                 assert ext_controls.error_idx != 0
 
         # general test

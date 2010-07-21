@@ -106,8 +106,8 @@ c_int = ctypes.c_int
 
 class timeval(ctypes.Structure):
     _fields_ = [
-        ('secs', ctypes.c_int),
-        ('usecs', ctypes.c_int),
+        ('secs', ctypes.c_long),
+        ('usecs', ctypes.c_long),
     ]
 
 
@@ -543,7 +543,7 @@ class v4l2_buffer(ctypes.Structure):
     class _u(ctypes.Union):
         _fields_ = [
             ('offset', ctypes.c_uint32),
-            ('userptr', ctypes.c_uint32),
+            ('userptr', ctypes.c_ulong),
         ]
 
     _fields_ = [
@@ -580,7 +580,6 @@ V4L2_BUF_FLAG_INPUT = 0x0200
 class v4l2_framebuffer(ctypes.Structure):
     _fields_ = [
         ('capability', ctypes.c_uint32),
-        ('flags', ctypes.c_uint32),
         ('flags', ctypes.c_uint32),
         ('base', ctypes.c_void_p),
         ('fmt', v4l2_pix_format),
@@ -626,12 +625,13 @@ class v4l2_window(ctypes.Structure):
 # Capture parameters
 #
 
-class v4l2_captureparam(ctypes.Structure):
+class v4l2_captureparm(ctypes.Structure):
     _fields_ = [
         ('capability', ctypes.c_uint32),
         ('capturemode', ctypes.c_uint32),
         ('timeperframe', v4l2_fract),
         ('extendedmode', ctypes.c_uint32),
+        ('readbuffers', ctypes.c_uint32),
         ('reserved', ctypes.c_uint32 * 4),
     ]
 
@@ -641,13 +641,14 @@ V4L2_MODE_HIGHQUALITY = 0x0001
 V4L2_CAP_TIMEPERFRAME = 0x1000
 
 
-class v4l2_outputparam(ctypes.Structure):
+class v4l2_outputparm(ctypes.Structure):
     _fields_ = [
         ('capability', ctypes.c_uint32),
         ('outputmode', ctypes.c_uint32),
         ('timeperframe', v4l2_fract),
         ('extendedmode', ctypes.c_uint32),
-        ('writebuffers', ctypes.c_uint32)
+        ('writebuffers', ctypes.c_uint32),
+        ('reserved', ctypes.c_uint32 * 4),
     ]
 
 
@@ -803,7 +804,7 @@ class v4l2_output(ctypes.Structure):
         ('audioset', ctypes.c_uint32),
         ('modulator', ctypes.c_uint32),
         ('std', v4l2_std_id),
-        ('reserved', ctypes.c_uint32),
+        ('reserved', ctypes.c_uint32 * 4),
     ]
 
 
@@ -1268,7 +1269,7 @@ class v4l2_modulator(ctypes.Structure):
         ('rangelow', ctypes.c_uint32),
         ('rangehigh', ctypes.c_uint32),
         ('txsubchans', ctypes.c_uint32),
-        ('reserved', ctypes.c_uint32),
+        ('reserved', ctypes.c_uint32 * 4),
     ]
 
 
@@ -1480,10 +1481,10 @@ class v4l2_format(ctypes.Structure):
 
 
 class v4l2_streamparm(ctypes.Structure):
-    class _u(ctypes.Structure):
+    class _u(ctypes.Union):
         _fields_ = [
-            ('capture', v4l2_captureparam),
-            ('output', v4l2_outputparam),
+            ('capture', v4l2_captureparm),
+            ('output', v4l2_outputparm),
             ('raw_data', ctypes.c_char * 200),
         ]
 

@@ -1,5 +1,12 @@
-v4l2 Releases
-=============
+python-v4l2 Releases
+====================
+
+0.2
+---
+
+* Updated to videodev2.h in Linux 2.6.34; closes `#608484`_
+
+.. _`#608484`: https://bugs.launchpad.net/python-v4l2/+bug/608484
 
 0.1.3
 -----

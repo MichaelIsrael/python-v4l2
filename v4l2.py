@@ -41,7 +41,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 """
-Python bindings for the v4l2 userspace api
+Python bindings for the v4l2 userspace api in Linux 2.6.34
 """
 
 # see linux/videodev2.h

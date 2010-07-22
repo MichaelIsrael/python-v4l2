@@ -116,7 +116,7 @@ class timeval(ctypes.Structure):
 #
 
 
-VIDEO_MAX_FRAMERATE = 32
+VIDEO_MAX_FRAME = 32
 
 
 VID_TYPE_CAPTURE = 1
@@ -205,7 +205,8 @@ v4l2_ctrl_type = enum
     V4L2_CTRL_TYPE_BUTTON,
     V4L2_CTRL_TYPE_INTEGER64,
     V4L2_CTRL_TYPE_CTRL_CLASS,
-) = range(1, 7)
+    V4L2_CTRL_TYPE_STRING,
+) = range(1, 8)
 
 
 v4l2_tuner_type = enum
@@ -292,10 +293,12 @@ V4L2_CAP_SLICED_VBI_OUTPUT = 0x00000080
 V4L2_CAP_RDS_CAPTURE = 0x00000100
 V4L2_CAP_VIDEO_OUTPUT_OVERLAY = 0x00000200
 V4L2_CAP_HW_FREQ_SEEK = 0x00000400
+V4L2_CAP_RDS_OUTPUT = 0x00000800
 
 V4L2_CAP_TUNER = 0x00010000
 V4L2_CAP_AUDIO = 0x00020000
 V4L2_CAP_RADIO = 0x00040000
+V4L2_CAP_MODULATOR = 0x00080000
 
 V4L2_CAP_READWRITE = 0x01000000
 V4L2_CAP_ASYNCIO = 0x02000000
@@ -318,7 +321,7 @@ class v4l2_pix_format(ctypes.Structure):
         ('priv', ctypes.c_uint32),
     ]
 
-
+# RGB formats
 V4L2_PIX_FMT_RGB332 = v4l2_fourcc('R', 'G', 'B', '1')
 V4L2_PIX_FMT_RGB444 = v4l2_fourcc('R', '4', '4', '4')
 V4L2_PIX_FMT_RGB555 = v4l2_fourcc('R', 'G', 'B', 'O')
@@ -329,13 +332,23 @@ V4L2_PIX_FMT_BGR24 = v4l2_fourcc('B', 'G', 'R', '3')
 V4L2_PIX_FMT_RGB24 = v4l2_fourcc('R', 'G', 'B', '3')
 V4L2_PIX_FMT_BGR32 = v4l2_fourcc('B', 'G', 'R', '4')
 V4L2_PIX_FMT_RGB32 = v4l2_fourcc('R', 'G', 'B', '4')
+
+# Grey formats
 V4L2_PIX_FMT_GREY = v4l2_fourcc('G', 'R', 'E', 'Y')
+V4L2_PIX_FMT_Y10 =  v4l2_fourcc('Y', '1', '0', ' ')
 V4L2_PIX_FMT_Y16 = v4l2_fourcc('Y', '1', '6', ' ')
+
+# Palette formats
 V4L2_PIX_FMT_PAL8 = v4l2_fourcc('P', 'A', 'L', '8')
+
+# Luminance+Chrominance formats
 V4L2_PIX_FMT_YVU410 = v4l2_fourcc('Y', 'V', 'U', '9')
 V4L2_PIX_FMT_YVU420 = v4l2_fourcc('Y', 'V', '1', '2')
 V4L2_PIX_FMT_YUYV = v4l2_fourcc('Y', 'U', 'Y', 'V')
+V4L2_PIX_FMT_YYUV = v4l2_fourcc('Y', 'Y', 'U', 'V')
+V4L2_PIX_FMT_YVYU = v4l2_fourcc('Y', 'V', 'Y', 'U')
 V4L2_PIX_FMT_UYVY = v4l2_fourcc('U', 'Y', 'V', 'Y')
+V4L2_PIX_FMT_VYUY = v4l2_fourcc('V', 'Y', 'U', 'Y')
 V4L2_PIX_FMT_YUV422P = v4l2_fourcc('4', '2', '2', 'P')
 V4L2_PIX_FMT_YUV411P = v4l2_fourcc('4', '1', '1', 'P')
 V4L2_PIX_FMT_Y41P = v4l2_fourcc('Y', '4', '1', 'P')
@@ -343,24 +356,40 @@ V4L2_PIX_FMT_YUV444 = v4l2_fourcc('Y', '4', '4', '4')
 V4L2_PIX_FMT_YUV555 = v4l2_fourcc('Y', 'U', 'V', 'O')
 V4L2_PIX_FMT_YUV565 = v4l2_fourcc('Y', 'U', 'V', 'P')
 V4L2_PIX_FMT_YUV32 = v4l2_fourcc('Y', 'U', 'V', '4')
-V4L2_PIX_FMT_NV12 = v4l2_fourcc('N', 'V', '1', '2')
-V4L2_PIX_FMT_NV21 = v4l2_fourcc('N', 'V', '2', '1')
 V4L2_PIX_FMT_YUV410 = v4l2_fourcc('Y', 'U', 'V', '9')
 V4L2_PIX_FMT_YUV420 = v4l2_fourcc('Y', 'U', '1', '2')
-V4L2_PIX_FMT_YYUV = v4l2_fourcc('Y', 'Y', 'U', 'V')
 V4L2_PIX_FMT_HI240 = v4l2_fourcc('H', 'I', '2', '4')
 V4L2_PIX_FMT_HM12 = v4l2_fourcc('H', 'M', '1', '2')
+
+# two planes -- one Y, one Cr + Cb interleaved
+V4L2_PIX_FMT_NV12 = v4l2_fourcc('N', 'V', '1', '2')
+V4L2_PIX_FMT_NV21 = v4l2_fourcc('N', 'V', '2', '1')
+V4L2_PIX_FMT_NV16 = v4l2_fourcc('N', 'V', '1', '6')
+V4L2_PIX_FMT_NV61 = v4l2_fourcc('N', 'V', '6', '1')
+
+# Bayer formats - see http://www.siliconimaging.com/RGB%20Bayer.htm
 V4L2_PIX_FMT_SBGGR8 = v4l2_fourcc('B', 'A', '8', '1')
 V4L2_PIX_FMT_SGBRG8 = v4l2_fourcc('G', 'B', 'R', 'G')
+V4L2_PIX_FMT_SGRBG8 = v4l2_fourcc('G', 'R', 'B', 'G')
+V4L2_PIX_FMT_SRGGB8 = v4l2_fourcc('R', 'G', 'G', 'B')
+V4L2_PIX_FMT_SBGGR10 = v4l2_fourcc('B', 'G', '1', '0')
+V4L2_PIX_FMT_SGBRG10 = v4l2_fourcc('G', 'B', '1', '0')
 V4L2_PIX_FMT_SGRBG10 = v4l2_fourcc('B', 'A', '1', '0')
+V4L2_PIX_FMT_SRGGB10 = v4l2_fourcc('R', 'G', '1', '0')
 V4L2_PIX_FMT_SGRBG10DPCM8 = v4l2_fourcc('B', 'D', '1', '0')
 V4L2_PIX_FMT_SBGGR16 = v4l2_fourcc('B', 'Y', 'R', '2')
+
+# compressed formats
 V4L2_PIX_FMT_MJPEG = v4l2_fourcc('M', 'J', 'P', 'G')
 V4L2_PIX_FMT_JPEG = v4l2_fourcc('J', 'P', 'E', 'G')
 V4L2_PIX_FMT_DV = v4l2_fourcc('d', 'v', 's', 'd')
 V4L2_PIX_FMT_MPEG = v4l2_fourcc('M', 'P', 'E', 'G')
+
+# Vendor-specific formats
+V4L2_PIX_FMT_CPIA1 = v4l2_fourcc('C', 'P', 'I', 'A')
 V4L2_PIX_FMT_WNVA = v4l2_fourcc('W', 'N', 'V', 'A')
 V4L2_PIX_FMT_SN9C10X = v4l2_fourcc('S', '9', '1', '0')
+V4L2_PIX_FMT_SN9C20X_I420 = v4l2_fourcc('S', '9', '2', '0')
 V4L2_PIX_FMT_PWC1 = v4l2_fourcc('P', 'W', 'C', '1')
 V4L2_PIX_FMT_PWC2 = v4l2_fourcc('P', 'W', 'C', '2')
 V4L2_PIX_FMT_ET61X251 = v4l2_fourcc('E', '6', '2', '5')
@@ -369,8 +398,13 @@ V4L2_PIX_FMT_SPCA505 = v4l2_fourcc('S', '5', '0', '5')
 V4L2_PIX_FMT_SPCA508 = v4l2_fourcc('S', '5', '0', '8')
 V4L2_PIX_FMT_SPCA561 = v4l2_fourcc('S', '5', '6', '1')
 V4L2_PIX_FMT_PAC207 = v4l2_fourcc('P', '2', '0', '7')
+V4L2_PIX_FMT_MR97310A = v4l2_fourcc('M', '3', '1', '0')
+V4L2_PIX_FMT_SN9C2028 = v4l2_fourcc('S', 'O', 'N', 'X')
+V4L2_PIX_FMT_SQ905C = v4l2_fourcc('9', '0', '5', 'C')
 V4L2_PIX_FMT_PJPG = v4l2_fourcc('P', 'J', 'P', 'G')
-V4L2_PIX_FMT_YVYU = v4l2_fourcc('Y', 'V', 'Y', 'U')
+V4L2_PIX_FMT_OV511 = v4l2_fourcc('O', '5', '1', '1')
+V4L2_PIX_FMT_OV518 = v4l2_fourcc('O', '5', '1', '8')
+V4L2_PIX_FMT_STV0680 = v4l2_fourcc('S', '6', '8', '0')
 
 
 #
@@ -388,6 +422,7 @@ class v4l2_fmtdesc(ctypes.Structure):
     ]
 
 V4L2_FMT_FLAG_COMPRESSED = 0x0001
+V4L2_FMT_FLAG_EMULATED = 0x0002
 
 
 #
@@ -592,6 +627,7 @@ V4L2_FBUF_CAP_BITMAP_CLIPPING = 0x0008
 V4L2_FBUF_CAP_LOCAL_ALPHA = 0x0010
 V4L2_FBUF_CAP_GLOBAL_ALPHA = 0x0020
 V4L2_FBUF_CAP_LOCAL_INV_ALPHA = 0x0040
+V4L2_FBUF_CAP_SRC_CHROMAKEY = 0x0080
 
 V4L2_FBUF_FLAG_PRIMARY = 0x0001
 V4L2_FBUF_FLAG_OVERLAY = 0x0002
@@ -599,6 +635,7 @@ V4L2_FBUF_FLAG_CHROMAKEY = 0x0004
 V4L2_FBUF_FLAG_LOCAL_ALPHA = 0x0008
 V4L2_FBUF_FLAG_GLOBAL_ALPHA = 0x0010
 V4L2_FBUF_FLAG_LOCAL_INV_ALPHA = 0x0020
+V4L2_FBUF_FLAG_SRC_CHROMAKEY = 0x0040
 
 
 class v4l2_clip(ctypes.Structure):
@@ -637,7 +674,6 @@ class v4l2_captureparm(ctypes.Structure):
 
 
 V4L2_MODE_HIGHQUALITY = 0x0001
-
 V4L2_CAP_TIMEPERFRAME = 0x1000
 
 
@@ -687,6 +723,7 @@ V4L2_STD_PAL_I = 0x00000010
 V4L2_STD_PAL_D = 0x00000020
 V4L2_STD_PAL_D1 = 0x00000040
 V4L2_STD_PAL_K = 0x00000080
+
 V4L2_STD_PAL_M = 0x00000100
 V4L2_STD_PAL_N = 0x00000200
 V4L2_STD_PAL_Nc = 0x00000400
@@ -709,40 +746,27 @@ V4L2_STD_SECAM_LC = 0x00800000
 V4L2_STD_ATSC_8_VSB = 0x01000000
 V4L2_STD_ATSC_16_VSB = 0x02000000
 
-V4L2_STD_PAL_BG = V4L2_STD_PAL_B | V4L2_STD_PAL_B1 | V4L2_STD_PAL_G
-V4L2_STD_PAL_DK	= V4L2_STD_PAL_D | V4L2_STD_PAL_D1 | V4L2_STD_PAL_K
-V4L2_STD_PAL = (
-    V4L2_STD_PAL_BG | V4L2_STD_PAL_DK | V4L2_STD_PAL_H |
-    V4L2_STD_PAL_I)
-V4L2_STD_NTSC = V4L2_STD_NTSC_M	| V4L2_STD_NTSC_M_JP | V4L2_STD_NTSC_M_KR
-V4L2_STD_SECAM_DK = (
-    V4L2_STD_SECAM_D | V4L2_STD_SECAM_K | V4L2_STD_SECAM_K1)
-V4L2_STD_SECAM = (
-    V4L2_STD_SECAM_B | V4L2_STD_SECAM_G | V4L2_STD_SECAM_H |
-    V4L2_STD_SECAM_DK | V4L2_STD_SECAM_L | V4L2_STD_SECAM_LC)
-V4L2_STD_525_60	= (
-    V4L2_STD_PAL_M | V4L2_STD_PAL_60 | V4L2_STD_NTSC |
-    V4L2_STD_NTSC_443)
-V4L2_STD_625_50 = (
-    V4L2_STD_PAL | V4L2_STD_PAL_N | V4L2_STD_PAL_Nc |
-    V4L2_STD_SECAM)
-V4L2_STD_ATSC = V4L2_STD_ATSC_8_VSB | V4L2_STD_ATSC_16_VSB
+
+# some common needed stuff
+V4L2_STD_PAL_BG = (V4L2_STD_PAL_B | V4L2_STD_PAL_B1 | V4L2_STD_PAL_G)
+V4L2_STD_PAL_DK = (V4L2_STD_PAL_D | V4L2_STD_PAL_D1 | V4L2_STD_PAL_K)
+V4L2_STD_PAL = (V4L2_STD_PAL_BG | V4L2_STD_PAL_DK | V4L2_STD_PAL_H | V4L2_STD_PAL_I)
+V4L2_STD_NTSC = (V4L2_STD_NTSC_M | V4L2_STD_NTSC_M_JP | V4L2_STD_NTSC_M_KR)
+V4L2_STD_SECAM_DK = (V4L2_STD_SECAM_D | V4L2_STD_SECAM_K | V4L2_STD_SECAM_K1)
+V4L2_STD_SECAM = (V4L2_STD_SECAM_B | V4L2_STD_SECAM_G | V4L2_STD_SECAM_H | V4L2_STD_SECAM_DK | V4L2_STD_SECAM_L | V4L2_STD_SECAM_LC)
+
+V4L2_STD_525_60 = (V4L2_STD_PAL_M | V4L2_STD_PAL_60 | V4L2_STD_NTSC | V4L2_STD_NTSC_443)
+V4L2_STD_625_50 = (V4L2_STD_PAL | V4L2_STD_PAL_N | V4L2_STD_PAL_Nc | V4L2_STD_SECAM)
+V4L2_STD_ATSC = (V4L2_STD_ATSC_8_VSB | V4L2_STD_ATSC_16_VSB)
 
 V4L2_STD_UNKNOWN = 0
-V4L2_STD_ALL = V4L2_STD_525_60 | V4L2_STD_625_50
+V4L2_STD_ALL = (V4L2_STD_525_60 | V4L2_STD_625_50)
 
-V4L2_STD_MN = (
-    V4L2_STD_PAL_M |
-    V4L2_STD_PAL_N |
-    V4L2_STD_PAL_Nc |
-    V4L2_STD_NTSC)
-V4L2_STD_B = V4L2_STD_PAL_B | V4L2_STD_PAL_B1 | V4L2_STD_SECAM_B
-V4L2_STD_GH = (
-    V4L2_STD_PAL_G |
-    V4L2_STD_PAL_H |
-    V4L2_STD_SECAM_G |
-    V4L2_STD_SECAM_H)
-V4L2_STD_DK = V4L2_STD_PAL_DK | V4L2_STD_SECAM_DK
+# some merged standards
+V4L2_STD_MN = (V4L2_STD_PAL_M | V4L2_STD_PAL_N | V4L2_STD_PAL_Nc | V4L2_STD_NTSC)
+V4L2_STD_B = (V4L2_STD_PAL_B | V4L2_STD_PAL_B1 | V4L2_STD_SECAM_B)
+V4L2_STD_GH = (V4L2_STD_PAL_G | V4L2_STD_PAL_H|V4L2_STD_SECAM_G | V4L2_STD_SECAM_H)
+V4L2_STD_DK = (V4L2_STD_PAL_DK | V4L2_STD_SECAM_DK)
 
 
 class v4l2_standard(ctypes.Structure):
@@ -754,6 +778,110 @@ class v4l2_standard(ctypes.Structure):
         ('framelines', ctypes.c_uint32),
         ('reserved', ctypes.c_uint32 * 4),
     ]
+
+
+#
+# Video timings dv preset
+#
+
+class v4l2_dv_preset(ctypes.Structure):
+    _fields_ = [
+        ('preset', ctypes.c_uint32),
+        ('reserved', ctypes.c_uint32 * 4)
+    ]
+
+
+#
+# DV preset enumeration
+#
+
+class v4l2_dv_enum_preset(ctypes.Structure):
+    _fields_ = [
+        ('index', ctypes.c_uint32),
+        ('preset', ctypes.c_uint32),
+        ('name', ctypes.c_char * 32),
+        ('width', ctypes.c_uint32),
+        ('height', ctypes.c_uint32),
+        ('reserved', ctypes.c_uint32 * 4),
+    ]
+
+#
+# DV preset values
+#
+
+V4L2_DV_INVALID = 0
+V4L2_DV_480P59_94 = 1
+V4L2_DV_576P50 = 2
+V4L2_DV_720P24 = 3
+V4L2_DV_720P25 = 4
+V4L2_DV_720P30 = 5
+V4L2_DV_720P50 = 6
+V4L2_DV_720P59_94 = 7
+V4L2_DV_720P60 = 8
+V4L2_DV_1080I29_97 = 9
+V4L2_DV_1080I30	= 10
+V4L2_DV_1080I25	= 11
+V4L2_DV_1080I50	= 12
+V4L2_DV_1080I60	= 13
+V4L2_DV_1080P24	= 14
+V4L2_DV_1080P25	= 15
+V4L2_DV_1080P30	= 16
+V4L2_DV_1080P50	= 17
+V4L2_DV_1080P60	= 18
+
+
+#
+# DV BT timings
+#
+
+class v4l2_bt_timings(ctypes.Structure):
+    _fields_ = [
+        ('width', ctypes.c_uint32),
+        ('height', ctypes.c_uint32),
+        ('interlaced', ctypes.c_uint32),
+        ('polarities', ctypes.c_uint32),
+        ('pixelclock', ctypes.c_uint64),
+        ('hfrontporch', ctypes.c_uint32),
+        ('hsync', ctypes.c_uint32),
+        ('hbackporch', ctypes.c_uint32),
+        ('vfrontporch', ctypes.c_uint32),
+        ('vsync', ctypes.c_uint32),
+        ('vbackporch', ctypes.c_uint32),
+        ('il_vfrontporch', ctypes.c_uint32),
+        ('il_vsync', ctypes.c_uint32),
+        ('il_vbackporch', ctypes.c_uint32),
+        ('reserved', ctypes.c_uint32 * 16),
+    ]
+
+    _pack_ = True
+
+# Interlaced or progressive format
+V4L2_DV_PROGRESSIVE = 0
+V4L2_DV_INTERLACED = 1
+
+# Polarities. If bit is not set, it is assumed to be negative polarity
+V4L2_DV_VSYNC_POS_POL = 0x00000001
+V4L2_DV_HSYNC_POS_POL = 0x00000002
+
+
+class v4l2_dv_timings(ctypes.Structure):
+    class _u(ctypes.Union):
+        _fields_ = [
+            ('bt', v4l2_bt_timings),
+            ('reserved', ctypes.c_uint32 * 32),
+        ]
+
+    _fields_ = [
+        ('type', ctypes.c_uint32),
+        ('_u', _u),
+    ]
+
+    _anonymous_ = ('_u',)
+    _pack_ = True
+
+
+# Values for the type field
+V4L2_DV_BT_656_1120 = 0
 
 
 #
@@ -780,6 +908,9 @@ V4L2_IN_ST_NO_POWER = 0x00000001
 V4L2_IN_ST_NO_SIGNAL = 0x00000002
 V4L2_IN_ST_NO_COLOR = 0x00000004
 
+V4L2_IN_ST_HFLIP = 0x00000010
+V4L2_IN_ST_VFLIP = 0x00000020
+
 V4L2_IN_ST_NO_H_LOCK = 0x00000100
 V4L2_IN_ST_COLOR_KILL = 0x00000200
 
@@ -791,6 +922,9 @@ V4L2_IN_ST_MACROVISION = 0x01000000
 V4L2_IN_ST_NO_ACCESS = 0x02000000
 V4L2_IN_ST_VTR = 0x04000000
 
+V4L2_IN_CAP_PRESETS = 0x00000001
+V4L2_IN_CAP_CUSTOM_TIMINGS = 0x00000002
+V4L2_IN_CAP_STD = 0x00000004
 
 #
 # Video outputs
@@ -812,6 +946,9 @@ V4L2_OUTPUT_TYPE_MODULATOR = 1
 V4L2_OUTPUT_TYPE_ANALOG	= 2
 V4L2_OUTPUT_TYPE_ANALOGVGAOVERLAY = 3
 
+V4L2_OUT_CAP_PRESETS = 0x00000001
+V4L2_OUT_CAP_CUSTOM_TIMINGS = 0x00000002
+V4L2_OUT_CAP_STD = 0x00000004
 
 #
 # Controls
@@ -855,6 +992,7 @@ class v4l2_ext_controls(ctypes.Structure):
 V4L2_CTRL_CLASS_USER = 0x00980000
 V4L2_CTRL_CLASS_MPEG = 0x00990000
 V4L2_CTRL_CLASS_CAMERA = 0x009a0000
+V4L2_CTRL_CLASS_FM_TX = 0x009b0000
 
 
 def V4L2_CTRL_ID_MASK():
@@ -898,10 +1036,14 @@ V4L2_CTRL_FLAG_READ_ONLY = 0x0004
 V4L2_CTRL_FLAG_UPDATE = 0x0008
 V4L2_CTRL_FLAG_INACTIVE = 0x0010
 V4L2_CTRL_FLAG_SLIDER = 0x0020
+V4L2_CTRL_FLAG_WRITE_ONLY = 0x0040
+
 V4L2_CTRL_FLAG_NEXT_CTRL = 0x80000000
+
 V4L2_CID_BASE = V4L2_CTRL_CLASS_USER | 0x900
 V4L2_CID_USER_BASE = V4L2_CID_BASE
 V4L2_CID_PRIVATE_BASE = 0x08000000
+
 V4L2_CID_USER_CLASS = V4L2_CTRL_CLASS_USER | 1
 V4L2_CID_BRIGHTNESS = V4L2_CID_BASE + 0
 V4L2_CID_CONTRAST = V4L2_CID_BASE + 1
@@ -945,7 +1087,22 @@ V4L2_CID_SHARPNESS = V4L2_CID_BASE + 27
 V4L2_CID_BACKLIGHT_COMPENSATION = V4L2_CID_BASE + 28
 V4L2_CID_CHROMA_AGC = V4L2_CID_BASE + 29
 V4L2_CID_COLOR_KILLER = V4L2_CID_BASE + 30
-V4L2_CID_LASTP1 = V4L2_CID_BASE + 31
+V4L2_CID_COLORFX = V4L2_CID_BASE + 31
+
+v4l2_colorfx = enum
+(
+    V4L2_COLORFX_NONE,
+    V4L2_COLORFX_BW,
+    V4L2_COLORFX_SEPIA,
+) = range(3)
+
+V4L2_CID_AUTOBRIGHTNESS = V4L2_CID_BASE + 32
+V4L2_CID_BAND_STOP_FILTER = V4L2_CID_BASE + 33
+
+V4L2_CID_ROTATE = V4L2_CID_BASE + 34
+V4L2_CID_BG_COLOR = V4L2_CID_BASE + 35
+V4L2_CID_LASTP1 = V4L2_CID_BASE + 36
+
 V4L2_CID_MPEG_BASE = V4L2_CTRL_CLASS_MPEG | 0x900
 V4L2_CID_MPEG_CLASS = V4L2_CTRL_CLASS_MPEG | 1
 
@@ -1240,6 +1397,47 @@ V4L2_CID_FOCUS_ABSOLUTE = V4L2_CID_CAMERA_CLASS_BASE + 10
 V4L2_CID_FOCUS_RELATIVE = V4L2_CID_CAMERA_CLASS_BASE + 11
 V4L2_CID_FOCUS_AUTO = V4L2_CID_CAMERA_CLASS_BASE + 12
 
+V4L2_CID_ZOOM_ABSOLUTE = V4L2_CID_CAMERA_CLASS_BASE + 13
+V4L2_CID_ZOOM_RELATIVE = V4L2_CID_CAMERA_CLASS_BASE + 14
+V4L2_CID_ZOOM_CONTINUOUS = V4L2_CID_CAMERA_CLASS_BASE + 15
+
+V4L2_CID_PRIVACY = V4L2_CID_CAMERA_CLASS_BASE + 16
+
+V4L2_CID_FM_TX_CLASS_BASE = V4L2_CTRL_CLASS_FM_TX | 0x900
+V4L2_CID_FM_TX_CLASS = V4L2_CTRL_CLASS_FM_TX | 1
+
+V4L2_CID_RDS_TX_DEVIATION = V4L2_CID_FM_TX_CLASS_BASE + 1
+V4L2_CID_RDS_TX_PI = V4L2_CID_FM_TX_CLASS_BASE + 2
+V4L2_CID_RDS_TX_PTY = V4L2_CID_FM_TX_CLASS_BASE + 3
+V4L2_CID_RDS_TX_PS_NAME = V4L2_CID_FM_TX_CLASS_BASE + 5
+V4L2_CID_RDS_TX_RADIO_TEXT = V4L2_CID_FM_TX_CLASS_BASE + 6
+
+V4L2_CID_AUDIO_LIMITER_ENABLED = V4L2_CID_FM_TX_CLASS_BASE + 64
+V4L2_CID_AUDIO_LIMITER_RELEASE_TIME = V4L2_CID_FM_TX_CLASS_BASE + 65
+V4L2_CID_AUDIO_LIMITER_DEVIATION = V4L2_CID_FM_TX_CLASS_BASE + 66
+
+V4L2_CID_AUDIO_COMPRESSION_ENABLED = V4L2_CID_FM_TX_CLASS_BASE + 80
+V4L2_CID_AUDIO_COMPRESSION_GAIN = V4L2_CID_FM_TX_CLASS_BASE + 81
+V4L2_CID_AUDIO_COMPRESSION_THRESHOLD = V4L2_CID_FM_TX_CLASS_BASE + 82
+V4L2_CID_AUDIO_COMPRESSION_ATTACK_TIME = V4L2_CID_FM_TX_CLASS_BASE + 83
+V4L2_CID_AUDIO_COMPRESSION_RELEASE_TIME = V4L2_CID_FM_TX_CLASS_BASE + 84
+
+V4L2_CID_PILOT_TONE_ENABLED = V4L2_CID_FM_TX_CLASS_BASE + 96
+V4L2_CID_PILOT_TONE_DEVIATION = V4L2_CID_FM_TX_CLASS_BASE + 97
+V4L2_CID_PILOT_TONE_FREQUENCY = V4L2_CID_FM_TX_CLASS_BASE + 98
+
+V4L2_CID_TUNE_PREEMPHASIS = V4L2_CID_FM_TX_CLASS_BASE + 112
+
+v4l2_preemphasis = enum
+(
+    V4L2_PREEMPHASIS_DISABLED,
+    V4L2_PREEMPHASIS_50_uS,
+    V4L2_PREEMPHASIS_75_uS,
+) = range(3)
+
+V4L2_CID_TUNE_POWER_LEVEL = V4L2_CID_FM_TX_CLASS_BASE + 113
+V4L2_CID_TUNE_ANTENNA_CAPACITOR = V4L2_CID_FM_TX_CLASS_BASE + 114
+
 
 #
 # Tuning
@@ -1279,12 +1477,14 @@ V4L2_TUNER_CAP_STEREO = 0x0010
 V4L2_TUNER_CAP_LANG2 = 0x0020
 V4L2_TUNER_CAP_SAP = 0x0020
 V4L2_TUNER_CAP_LANG1 = 0x0040
+V4L2_TUNER_CAP_RDS = 0x0080
 
 V4L2_TUNER_SUB_MONO = 0x0001
 V4L2_TUNER_SUB_STEREO = 0x0002
 V4L2_TUNER_SUB_LANG2 = 0x0004
 V4L2_TUNER_SUB_SAP = 0x0004
 V4L2_TUNER_SUB_LANG1 = 0x0008
+V4L2_TUNER_SUB_RDS = 0x0010
 
 V4L2_TUNER_MODE_MONO = 0x0000
 V4L2_TUNER_MODE_STEREO = 0x0001
@@ -1311,6 +1511,32 @@ class v4l2_hw_freq_seek(ctypes.Structure):
         ('wrap_around', ctypes.c_uint32),
         ('reserved', ctypes.c_uint32 * 8),
     ]
+
+
+#
+# RDS
+#
+
+class v4l2_rds_data(ctypes.Structure):
+    _fields_ = [
+        ('lsb', ctypes.c_char),
+        ('msb', ctypes.c_char),
+        ('block', ctypes.c_char),
+    ]
+
+    _pack_ = True
+
+
+V4L2_RDS_BLOCK_MSK =  0x7
+V4L2_RDS_BLOCK_A = 0
+V4L2_RDS_BLOCK_B = 1
+V4L2_RDS_BLOCK_C = 2
+V4L2_RDS_BLOCK_D = 3
+V4L2_RDS_BLOCK_C_ALT = 4
+V4L2_RDS_BLOCK_INVALID = 7
+
+V4L2_RDS_BLOCK_CORRECTED = 0x40
+V4L2_RDS_BLOCK_ERROR = 0x80
 
 
 #
@@ -1361,6 +1587,7 @@ class v4l2_enc_idx_entry(ctypes.Structure):
         ('flags', ctypes.c_uint32),
         ('reserved', ctypes.c_uint32 * 2),
     ]
+
 
 V4L2_ENC_IDX_ENTRIES = 64
 
@@ -1461,6 +1688,63 @@ class v4l2_sliced_vbi_data(ctypes.Structure):
 
 
 #
+# Sliced VBI data inserted into MPEG Streams
+#
+
+
+V4L2_MPEG_VBI_IVTV_TELETEXT_B = 1
+V4L2_MPEG_VBI_IVTV_CAPTION_525 = 4
+V4L2_MPEG_VBI_IVTV_WSS_625 = 5
+V4L2_MPEG_VBI_IVTV_VPS = 7
+
+
+class v4l2_mpeg_vbi_itv0_line(ctypes.Structure):
+    _fields_ = [
+        ('id', ctypes.c_char),
+        ('data', ctypes.c_char * 42),
+    ]
+
+    _pack_ = True
+
+
+class v4l2_mpeg_vbi_itv0(ctypes.Structure):
+    _fields_ = [
+        ('linemask', ctypes.c_uint32 * 2), # how to define __le32 in ctypes?
+        ('line', v4l2_mpeg_vbi_itv0_line * 35),
+    ]
+
+    _pack_ = True
+
+
+class v4l2_mpeg_vbi_ITV0(ctypes.Structure):
+    _fields_ = [
+        ('line', v4l2_mpeg_vbi_itv0_line * 36),
+    ]
+
+    _pack_ = True
+
+
+V4L2_MPEG_VBI_IVTV_MAGIC0 = "itv0"
+V4L2_MPEG_VBI_IVTV_MAGIC1 = "ITV0"
+
+
+class v4l2_mpeg_vbi_fmt_ivtv(ctypes.Structure):
+    class _u(ctypes.Union):
+        _fields_ = [
+            ('itv0', v4l2_mpeg_vbi_itv0),
+            ('ITV0', v4l2_mpeg_vbi_ITV0),
+        ]
+
+    _fields_ = [
+        ('magic', ctypes.c_char * 4),
+        ('_u', _u)
+    ]
+
+    _anonymous_ = ('_u',)
+    _pack_ = True
+
+
+#
 # Aggregate structures
 #
 
@@ -1501,11 +1785,29 @@ class v4l2_streamparm(ctypes.Structure):
 V4L2_CHIP_MATCH_HOST = 0
 V4L2_CHIP_MATCH_I2C_DRIVER = 1
 V4L2_CHIP_MATCH_I2C_ADDR = 2
+V4L2_CHIP_MATCH_AC97 = 3
 
-class v4l2_register(ctypes.Structure):
+
+class v4l2_dbg_match(ctypes.Structure):
+    class _u(ctypes.Union):
+        _fields_ = [
+            ('addr', ctypes.c_uint32),
+            ('name', ctypes.c_char * 32),
+        ]
+
     _fields_ = [
-        ('match_type', ctypes.c_uint32),
-        ('match_chip', ctypes.c_uint32),
+        ('type', ctypes.c_uint32),
+        ('_u', _u),
+    ]
+
+    _anonymous_ = ('_u',)
+    _pack_ = True
+
+
+class v4l2_dbg_register(ctypes.Structure):
+    _fields_ = [
+        ('match', v4l2_dbg_match),
+        ('size', ctypes.c_uint32),
         ('reg', ctypes.c_uint64),
         ('val', ctypes.c_uint64),
     ]
@@ -1513,16 +1815,15 @@ class v4l2_register(ctypes.Structure):
     _pack_ = True
 
 
-class v4l2_chip_ident(ctypes.Structure):
+class v4l2_dbg_chip_ident(ctypes.Structure):
     _fields_ = [
-        ('match_type', ctypes.c_uint32),
-        ('match_chip', ctypes.c_uint32),
+        ('match', v4l2_dbg_match),
         ('ident', ctypes.c_uint32),
-        ('version', ctypes.c_uint32),
+        ('revision', ctypes.c_uint32),
     ]
 
     _pack_ = True
-    
+
 
 #
 # ioctl codes for video devices
@@ -1583,15 +1884,26 @@ VIDIOC_LOG_STATUS = _IO('V', 70)
 VIDIOC_G_EXT_CTRLS = _IOWR('V', 71, v4l2_ext_controls)
 VIDIOC_S_EXT_CTRLS = _IOWR('V', 72, v4l2_ext_controls)
 VIDIOC_TRY_EXT_CTRLS = _IOWR('V', 73, v4l2_ext_controls)
+
 VIDIOC_ENUM_FRAMESIZES = _IOWR('V', 74, v4l2_frmsizeenum)
 VIDIOC_ENUM_FRAMEINTERVALS = _IOWR('V', 75, v4l2_frmivalenum)
 VIDIOC_G_ENC_INDEX = _IOR('V', 76, v4l2_enc_idx)
 VIDIOC_ENCODER_CMD = _IOWR('V', 77, v4l2_encoder_cmd)
 VIDIOC_TRY_ENCODER_CMD = _IOWR('V', 78, v4l2_encoder_cmd)
-VIDIOC_DBG_S_REGISTER = _IOW('V', 79, v4l2_register)
-VIDIOC_DBG_G_REGISTER = _IOWR('V', 80, v4l2_register)
-VIDIOC_G_CHIP_IDENT = _IOWR('V', 81, v4l2_chip_ident)
+
+VIDIOC_DBG_S_REGISTER = _IOW('V', 79, v4l2_dbg_register)
+VIDIOC_DBG_G_REGISTER = _IOWR('V', 80, v4l2_dbg_register)
+
+VIDIOC_DBG_G_CHIP_IDENT = _IOWR('V', 81, v4l2_dbg_chip_ident)
+
 VIDIOC_S_HW_FREQ_SEEK = _IOW('V', 82, v4l2_hw_freq_seek)
+VIDIOC_ENUM_DV_PRESETS = _IOWR('V', 83, v4l2_dv_enum_preset)
+VIDIOC_S_DV_PRESET = _IOWR('V', 84, v4l2_dv_preset)
+VIDIOC_G_DV_PRESET = _IOWR('V', 85, v4l2_dv_preset)
+VIDIOC_QUERY_DV_PRESET = _IOR('V', 86, v4l2_dv_preset)
+VIDIOC_S_DV_TIMINGS = _IOWR('V', 87, v4l2_dv_timings)
+VIDIOC_G_DV_TIMINGS = _IOWR('V', 88, v4l2_dv_timings)
+
 VIDIOC_OVERLAY_OLD = _IOWR('V', 14, ctypes.c_int)
 VIDIOC_S_PARM_OLD = _IOW('V', 22, v4l2_streamparm)
 VIDIOC_S_CTRL_OLD = _IOW('V', 28, v4l2_control)

@@ -275,7 +275,8 @@ class v4l2_capability(ctypes.Structure):
         ('bus_info', ctypes.c_char * 32),
         ('version', ctypes.c_uint32),
         ('capabilities', ctypes.c_uint32),
-        ('reserved', ctypes.c_uint32 * 4),
+        ('device_caps', ctypes.c_uint32),
+        ('reserved', ctypes.c_uint32 * 3),
     ]
 
 
